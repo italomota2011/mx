@@ -3,19 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MX4 Lap Timer</title>
+    <title>MX Lap Timer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             background-image: url('https://raw.githubusercontent.com/italomota2011/mx/refs/heads/main/background.png');
             background-size: cover;
             background-position: center;
-            /* Usamos dvh para garantir que o menu fique no lugar certo no mobile */
             height: 100dvh;
             margin: 0;
             overflow: hidden;
             display: flex;
-            /* Alinha o conteúdo na parte de baixo */
             align-items: flex-end;
             justify-content: center;
         }
@@ -23,36 +21,45 @@
             background: rgba(0, 0, 0, 0.75);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            /* Margem para não colar no fundo da tela */
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+        }
+
+        /* Aviso para girar o celular caso esteja em pé */
+        @media (orientation: portrait) {
+            #aviso-giro {
+                display: flex;
+            }
+        }
+        #aviso-giro {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 999;
+            color: white;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
         }
     </style>
 </head>
 <body class="p-4">
 
-    <div class="glass p-8 rounded-3xl w-full max-w-md text-center border border-gray-700 shadow-2xl">
-        <h1 class="text-3xl font-black text-white mb-8 italic tracking-tighter">
-            MX4 <span class="text-yellow-400">LAP TIMER</span>
-        </h1>
-        
-        <div class="flex flex-col gap-4">
-            <button onclick="nav('mapear.html')" class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-5 rounded-2xl shadow-lg transition-all active:scale-95 uppercase">
-                Mapear Pista
-            </button>
-            <button onclick="nav('gravar.html')" class="bg-green-600 hover:bg-green-700 text-white font-bold py-5 rounded-2xl shadow-lg transition-all active:scale-95 uppercase">
-                Gravar Tempos
-            </button>
-            <button onclick="nav('historico.html')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 rounded-2xl shadow-lg transition-all active:scale-95 uppercase">
-                Ver Tempos Gravados
-            </button>
-        </div>
+    <div id="aviso-giro">
+        <div class="text-6xl mb-4">🔄</div>
+        <h2 class="text-2xl font-bold italic">Gire o celular</h2>
+        <p class="text-gray-400">Este sistema funciona apenas na horizontal.</p>
     </div>
 
-    <script>
-        function nav(page) {
-            // Redirecionamento direto para os arquivos
-            window.location.href = page;
-        }
-    </script>
-</body>
-</html>
+    <div class="glass p-6 rounded-3xl w-full max-w-2xl text-center border border-gray-700 shadow-2xl">
+        <h1 class="text-3xl font-black text-white mb-6 italic tracking-tighter">
+            MX <span class="text-yellow-400">LAP TIMER</span>
+        </h1>
+        
+        <div class="grid grid-cols-3 gap-4">
+            <button onclick="nav('mapear.html')" class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-6 rounded-2xl shadow-lg active:scale-95 uppercase text-sm">
+                Mapear Pista
+            </button>
+            <button onclick="nav('gravar.html')" class="bg-green-600 hover:bg-green-700 text-white font-bold py-6 rounded-2xl shadow-lg active:scale
