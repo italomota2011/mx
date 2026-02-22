@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MX Lap Timer</title>
+    <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ea580c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+<script>
+  // Regista o Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+</script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -76,3 +87,4 @@
     </script>
 </body>
 </html>
+
