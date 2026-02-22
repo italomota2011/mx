@@ -2,59 +2,57 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MX4 Lap Timer</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#ea580c">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js');
-      }
-    </script>
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-    body {
-        background-image: url('https://raw.githubusercontent.com/italomota2011/mx/refs/heads/main/background.png');
-        background-size: cover;
-        background-position: center center;
-        background-attachment: fixed;
-        height: 100dvh;
-        width: 100vw;
-        margin: 0;
-        overflow: hidden;
-        
-        display: flex;
-        align-items: flex-end; /* Menu na base */
-        justify-content: center;
-    }
-
-    .glass {
-        background: rgba(0, 0, 0, 0.85); /* Escurecido para destacar o amarelo */
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        width: 92%;
-        max-width: 360px;
-        margin-bottom: 20px; /* Menu bem próximo à base */
-    }
-
-    .btn-mx {
-        transition: transform 0.1s ease;
-        text-transform: uppercase;
-        font-style: italic;
-    }
-
-    .btn-mx:active {
-        transform: scale(0.96);
-    }
+        body {
+            background-image: url('https://raw.githubusercontent.com/italomota2011/mx/refs/heads/main/background.png');
+            background-size: cover;
+            background-position: center;
+            /* Usamos dvh para garantir que o menu fique no lugar certo no mobile */
+            height: 100dvh;
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            /* Alinha o conteúdo na parte de baixo */
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .glass {
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            /* Margem para não colar no fundo da tela */
+            margin-bottom: 30px;
+        }
     </style>
 </head>
-<body>
+<body class="p-4">
 
-    <div class="glass p-6 rounded-[2.5rem] text-center shadow-2xl">
-        <h1 class="text-3xl font-black text-white mb-1 italic tracking-tighter">
-            MX4 <span class="text-yellow-400
+    <div class="glass p-8 rounded-3xl w-full max-w-md text-center border border-gray-700 shadow-2xl">
+        <h1 class="text-3xl font-black text-white mb-8 italic tracking-tighter">
+            MX4 <span class="text-yellow-400">LAP TIMER</span>
+        </h1>
+        
+        <div class="flex flex-col gap-4">
+            <button onclick="nav('mapear.html')" class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-5 rounded-2xl shadow-lg transition-all active:scale-95 uppercase">
+                Mapear Pista
+            </button>
+            <button onclick="nav('gravar.html')" class="bg-green-600 hover:bg-green-700 text-white font-bold py-5 rounded-2xl shadow-lg transition-all active:scale-95 uppercase">
+                Gravar Tempos
+            </button>
+            <button onclick="nav('historico.html')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 rounded-2xl shadow-lg transition-all active:scale-95 uppercase">
+                Ver Tempos Gravados
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function nav(page) {
+            // Redirecionamento direto para os arquivos
+            window.location.href = page;
+        }
+    </script>
+</body>
+</html>
