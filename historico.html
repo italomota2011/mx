@@ -2,32 +2,27 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Histórico MX</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Histórico - MX4</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { background: #111; color: #eee; min-height: 100vh; }
-        .glass-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .hidden { display: none; }
+        body { background: #111; height: 100dvh; margin: 0; display: flex; justify-content: center; align-items: center; }
+        @media screen and (orientation: portrait) {
+            #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
+        }
+        .glass-panel { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); height: 80%; }
     </style>
 </head>
-<body class="p-4">
-
-    <div id="listaSessoes" class="max-w-2xl mx-auto">
-        <div class="flex justify-between items-center mb-6">
-            <button onclick="window.location.href='index.html'" class="text-orange-500">← Voltar</button>
-            <h1 class="text-xl font-bold italic text-white">HISTÓRICO DE TREINOS</h1>
+<body onclick="requestLandscape()">
+    <div id="app-container" class="w-full h-full p-4 flex flex-col">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl font-black text-white italic text-yellow-400">HISTÓRICO</h1>
+            <button onclick="location.href='index.html'" class="bg-gray-800 text-white px-6 py-2 rounded-xl font-bold uppercase">← Voltar</button>
         </div>
         
-        <div id="containerCards" class="grid gap-4">
-            <p class="text-center text-gray-500">Carregando treinos...</p>
+        <div class="flex-1 glass-panel rounded-3xl p-4 overflow-y-auto">
+            <p class="text-gray-500 text-center mt-10 uppercase text-xs tracking-widest">Selecione uma sessão para ver o gráfico</p>
         </div>
     </div>
-
-    <div id="detalhesSessao" class="max-w-2xl mx-auto hidden">
-        <button onclick="voltarLista()" class="mb-4 text-orange-500">← Voltar para lista</button>
-        
-        <div class="glass-card p-6 rounded-2xl mb-6">
-            <h2 id="detalheNome" class="text-2xl font-bold text-green-500 italic">--</h2>
-            <p id="detalhe
+</body>
+</html>
