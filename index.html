@@ -5,110 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MX4 Lap Timer</title>
     <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#ea580c">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#ea580c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
 
-<script>
-  // Regista o Service Worker
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
-  }
-</script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js');
+      }
+    </script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
     body {
-        /* Define a imagem de fundo */
         background-image: url('https://raw.githubusercontent.com/italomota2011/mx/refs/heads/main/background.png');
-        
-        /* Ajusta a imagem para cobrir a tela inteira sem distorcer */
         background-size: cover;
-        
-        /* Centraliza a imagem */
         background-position: center center;
-        
-        /* Fixa o background para não rolar com o conteúdo */
         background-attachment: fixed;
-        
-        /* Garante que o corpo ocupe exatamente a altura do visor */
-        height: 100dvh; /* dvh é melhor para mobile (ignora barras do navegador) */
+        height: 100dvh;
         width: 100vw;
         margin: 0;
-        overflow: hidden; /* Remove barras de rolagem */
+        overflow: hidden;
         
         display: flex;
-        align-items: center;
+        align-items: flex-end; /* Menu na base */
         justify-content: center;
     }
 
     .glass {
-        background: rgba(0, 0, 0, 0.75);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px); /* Suporte para Safari/iPhone */
+        background: rgba(0, 0, 0, 0.85); /* Escurecido para destacar o amarelo */
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
         border: 1px solid rgba(255, 255, 255, 0.1);
-        width: 90%; /* Ocupa 90% da largura em telas pequenas */
-        max-width: 350px;
+        width: 92%;
+        max-width: 360px;
+        margin-bottom: 20px; /* Menu bem próximo à base */
     }
 
     .btn-mx {
-        transition: transform 0.1s ease, background-color 0.2s;
+        transition: transform 0.1s ease;
         text-transform: uppercase;
         font-style: italic;
     }
 
-    /* Feedback visual ao tocar no botão */
     .btn-mx:active {
-        transform: scale(0.98);
-        filter: brightness(1.2);
+        transform: scale(0.96);
     }
-</style>
+    </style>
 </head>
-<body class="flex items-center justify-center p-6">
+<body>
 
-    <div class="glass p-8 rounded-3xl w-full max-w-sm text-center shadow-2xl">
-        <h1 class="text-4xl font-black text-white mb-2 italic tracking-tighter">
-            MX4 <span class="text-orange-500">LAP TIMER</span>
-        </h1>
-        <p class="text-gray-400 text-xs mb-8 uppercase tracking-widest">Performance Tracking</p>
-        
-        <div class="flex flex-col gap-4">
-            <button onclick="navegar('mapear.html')" 
-                class="btn-mx bg-orange-600 hover:bg-orange-500 text-white font-black py-5 rounded-2xl shadow-lg border-b-4 border-orange-800">
-                Mapear Pista
-            </button>
-            
-            <button onclick="navegar('gravar.html')" 
-                class="btn-mx bg-green-600 hover:bg-green-500 text-white font-black py-5 rounded-2xl shadow-lg border-b-4 border-green-800">
-                Gravar Tempos
-            </button>
-            
-            <button onclick="navegar('historico.html')" 
-                class="btn-mx bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-2xl shadow-lg border-b-4 border-blue-800">
-                Ver Histórico
-            </button>
-        </div>
-
-        <div class="mt-8 text-[10px] text-gray-500 uppercase">
-            v1.0 • GPS Precision Active
-        </div>
-    </div>
-
-    <script>
-        function navegar(pagina) {
-            // Adiciona um pequeno delay para o efeito de clique (feedback visual)
-            setTimeout(() => {
-                window.location.href = pagina;
-            }, 150);
-        }
-
-        // Bloquear o scroll para parecer um app nativo
-        document.addEventListener('touchmove', function(e) {
-            e.preventDefault();
-        }, { passive: false });
-    </script>
-</body>
-</html>
-
-
-
-
+    <div class="glass p-6 rounded-[2.5rem] text-center shadow-2xl">
+        <h1 class="text-3xl font-black text-white mb-1 italic tracking-tighter">
+            MX4 <span class="text-yellow-400
