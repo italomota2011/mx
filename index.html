@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MX4 Lap Timer</title>
+    <title>MX Lap Timer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -16,78 +16,90 @@
             display: flex;
             align-items: flex-end;
             justify-content: center;
+            background-color: #000;
         }
+
+        /* FORÇAR HORIZONTAL VIA CSS */
+        @media screen and (orientation: portrait) {
+            #app-container {
+                transform: rotate(90deg);
+                transform-origin: center;
+                width: 100dvh;
+                height: 100vw;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                translate: -50% -50%;
+            }
+        }
+
         .glass {
-            background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             margin-bottom: 20px;
         }
 
-        /* Aviso para girar o celular caso esteja em pé */
-        @media (orientation: portrait) {
-            #aviso-giro {
-                display: flex;
-            }
+        .btn-mx {
+            transition: all 0.2s;
         }
-        #aviso-giro {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: #000;
-            z-index: 999;
-            color: white;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 20px;
+        .btn-mx:active {
+            transform: scale(0.95);
+            background-color: rgba(255, 255, 255, 0.1);
         }
     </style>
 </head>
-<body class="p-4">
+<body onclick="requestLandscape()">
 
-    <div id="aviso-giro">
-        <div class="text-6xl mb-4">🔄</div>
-        <h2 class="text-2xl font-bold italic">Gire o celular</h2>
-        <p class="text-gray-400">Este sistema funciona apenas na horizontal.</p>
-    </div>
-
-    <div class="glass p-6 rounded-3xl w-full max-w-2xl text-center border border-gray-700 shadow-2xl">
-        <h1 class="text-3xl font-black text-white mb-6 italic tracking-tighter">
-            MX4 <span class="text-yellow-400">LAP TIMER</span>
-        </h1>
+    <div id="app-container" class="w-full flex justify-center items-end h-full">
         
-        <div class="grid grid-cols-3 gap-4">
-            <button onclick="nav('mapear.html')" class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-6 rounded-2xl shadow-lg active:scale-95 uppercase text-sm">
-                Mapear Pista
-            </button>
-            <button onclick="nav('gravar.html')" class="bg-green-600 hover:bg-green-700 text-white font-bold py-6 rounded-2xl shadow-lg active:scale-95 uppercase text-sm">
-                Gravar Tempos
-            </button>
-            <button onclick="nav('historico.html')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 rounded-2xl shadow-lg active:scale-95 uppercase text-sm">
-                Ver Histórico
-            </button>
+        <div class="glass p-6 rounded-[2rem] w-full max-w-2xl text-center shadow-2xl">
+            <h1 class="text-3xl font-black text-white mb-6 italic tracking-tighter">
+                MX <span class="text-yellow-400">LAP TIMER</span>
+            </h1>
+            
+            <div class="grid grid-cols-3 gap-4">
+                <button onclick="nav('mapear.html')" class="btn-mx bg-orange-600 text-white font-bold py-6 rounded-2xl shadow-lg uppercase text-xs border-b-4 border-orange-900">
+                    Mapear Pista
+                </button>
+                <button onclick="nav('gravar.html')" class="btn-mx bg-green-600 text-white font-bold py-6 rounded-2xl shadow-lg uppercase text-xs border-b-4 border-green-900">
+                    Gravar Tempos
+                </button>
+                <button onclick="nav('historico.html')" class="btn-mx bg-blue-600 text-white font-bold py-6 rounded-2xl shadow-lg uppercase text-xs border-b-4 border-blue-900">
+                    Ver Histórico
+                </button>
+            </div>
+
+            <p class="mt-4 text-[9px] text-gray-500 uppercase font-bold tracking-widest">
+                Toque em qualquer lugar para travar a tela
+            </p>
         </div>
+
     </div>
 
     <script>
-        // Tenta travar a tela via código (só funciona após o primeiro clique do usuário)
-        function lockOrientation() {
-            if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('landscape').catch(err => {
-                    console.log("Trava de rotação automática não suportada ou precisa de interação.");
-                });
+        // Função para solicitar o bloqueio de orientação (exige interação do usuário)
+        async function requestLandscape() {
+            try {
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('landscape');
+                } else if (document.documentElement.requestFullscreen) {
+                    // Em alguns Androids, precisa estar em Fullscreen para travar
+                    await document.documentElement.requestFullscreen();
+                    await screen.orientation.lock('landscape');
+                }
+            } catch (err) {
+                console.log("A trava automática depende do navegador/dispositivo.");
             }
         }
 
         function nav(page) {
-            lockOrientation(); // Tenta travar ao clicar
             window.location.href = page;
         }
 
-        // Tentar ao carregar
-        window.onload = lockOrientation;
+        // Tentar ao carregar (pode falhar sem clique, por isso o aviso no botão)
+        window.addEventListener("load", requestLandscape);
     </script>
 </body>
 </html>
