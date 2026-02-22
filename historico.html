@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Histórico MX</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background: #111; color: #eee; min-height: 100vh; }
+        .glass-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="p-4">
+
+    <div id="listaSessoes" class="max-w-2xl mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <button onclick="window.location.href='index.html'" class="text-orange-500">← Voltar</button>
+            <h1 class="text-xl font-bold italic text-white">HISTÓRICO DE TREINOS</h1>
+        </div>
+        
+        <div id="containerCards" class="grid gap-4">
+            <p class="text-center text-gray-500">Carregando treinos...</p>
+        </div>
+    </div>
+
+    <div id="detalhesSessao" class="max-w-2xl mx-auto hidden">
+        <button onclick="voltarLista()" class="mb-4 text-orange-500">← Voltar para lista</button>
+        
+        <div class="glass-card p-6 rounded-2xl mb-6">
+            <h2 id="detalheNome" class="text-2xl font-bold text-green-500 italic">--</h2>
+            <p id="detalhe
