@@ -3,23 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MX Lap Timer</title>
+    <title>MX4 Lap Timer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            background-image: url('https://raw.githubusercontent.com/italomota2011/mx/refs/heads/main/background.png');
-            background-size: cover;
-            background-position: center;
+            /* Fundo Branco */
+            background-color: #ffffff;
             height: 100dvh;
             margin: 0;
             overflow: hidden;
             display: flex;
-            align-items: flex-end;
+            align-items: flex-end; /* Menu na parte inferior */
             justify-content: center;
-            background-color: #000;
         }
 
-        /* FORÇAR HORIZONTAL VIA CSS */
+        /* FORÇAR HORIZONTAL VIA CSS SE O CELULAR ESTIVER EM PÉ */
         @media screen and (orientation: portrait) {
             #app-container {
                 transform: rotate(90deg);
@@ -34,72 +32,71 @@
         }
 
         .glass {
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(240, 240, 240, 0.9); /* Fundo claro para combinar com o branco */
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
+        }
+
+        .logo-mx {
+            width: 180px; /* Ajuste o tamanho da logo aqui */
+            margin: 0 auto 20px auto;
+            display: block;
         }
 
         .btn-mx {
             transition: all 0.2s;
         }
         .btn-mx:active {
-            transform: scale(0.95);
-            background-color: rgba(255, 255, 255, 0.1);
+            transform: scale(0.96);
         }
     </style>
 </head>
 <body onclick="requestLandscape()">
 
-    <div id="app-container" class="w-full flex justify-center items-end h-full">
+    <div id="app-container" class="w-full flex flex-col justify-end items-center h-full">
         
-        <div class="glass p-6 rounded-[2rem] w-full max-w-2xl text-center shadow-2xl">
-            <h1 class="text-3xl font-black text-white mb-6 italic tracking-tighter">
-                MX <span class="text-yellow-400">LAP TIMER</span>
+        <img src="https://raw.githubusercontent.com/italomota2011/mx/refs/heads/main/logo.png" alt="MX4 Logo" class="logo-mx">
+
+        <div class="glass p-6 rounded-[2.5rem] w-full max-w-2xl text-center shadow-xl">
+            <h1 class="text-3xl font-black text-gray-900 mb-6 italic tracking-tighter">
+                MX4 <span class="text-yellow-500">LAP TIMER</span>
             </h1>
             
             <div class="grid grid-cols-3 gap-4">
-                <button onclick="nav('mapear.html')" class="btn-mx bg-orange-600 text-white font-bold py-6 rounded-2xl shadow-lg uppercase text-xs border-b-4 border-orange-900">
+                <button onclick="nav('mapear.html')" class="btn-mx bg-orange-600 text-white font-black py-6 rounded-2xl shadow-lg uppercase text-xs border-b-4 border-orange-800">
                     Mapear Pista
                 </button>
-                <button onclick="nav('gravar.html')" class="btn-mx bg-green-600 text-white font-bold py-6 rounded-2xl shadow-lg uppercase text-xs border-b-4 border-green-900">
+                <button onclick="nav('gravar.html')" class="btn-mx bg-green-600 text-white font-black py-6 rounded-2xl shadow-lg uppercase text-xs border-b-4 border-green-800">
                     Gravar Tempos
                 </button>
-                <button onclick="nav('historico.html')" class="btn-mx bg-blue-600 text-white font-bold py-6 rounded-2xl shadow-lg uppercase text-xs border-b-4 border-blue-900">
+                <button onclick="nav('historico.html')" class="btn-mx bg-blue-600 text-white font-black py-6 rounded-2xl shadow-lg uppercase text-xs border-b-4 border-blue-800">
                     Ver Histórico
                 </button>
             </div>
 
-            <p class="mt-4 text-[9px] text-gray-500 uppercase font-bold tracking-widest">
-                Toque em qualquer lugar para travar a tela
+            <p class="mt-4 text-[9px] text-gray-400 uppercase font-bold tracking-widest">
+                Toque para travar a tela na horizontal
             </p>
         </div>
 
     </div>
 
     <script>
-        // Função para solicitar o bloqueio de orientação (exige interação do usuário)
         async function requestLandscape() {
             try {
                 if (screen.orientation && screen.orientation.lock) {
                     await screen.orientation.lock('landscape');
-                } else if (document.documentElement.requestFullscreen) {
-                    // Em alguns Androids, precisa estar em Fullscreen para travar
-                    await document.documentElement.requestFullscreen();
-                    await screen.orientation.lock('landscape');
                 }
             } catch (err) {
-                console.log("A trava automática depende do navegador/dispositivo.");
+                console.log("Rotação automática bloqueada pelo navegador.");
             }
         }
 
         function nav(page) {
             window.location.href = page;
         }
-
-        // Tentar ao carregar (pode falhar sem clique, por isso o aviso no botão)
-        window.addEventListener("load", requestLandscape);
     </script>
 </body>
 </html>
