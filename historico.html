@@ -6,23 +6,20 @@
     <title>Histórico - MX4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #000; height: 100dvh; margin: 0; display: flex; align-items: center; justify-content: center; color: white; }
+        body { background-color: #000; color: white; min-height: 100dvh; margin: 0; font-family: sans-serif; }
         @media screen and (orientation: portrait) {
             #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
         }
+        .card-treino { background: rgba(20, 20, 20, 0.8); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .hide-scroll::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body>
-    <div id="app-container" class="w-full h-full p-8 flex flex-col items-center">
-        <div class="w-full max-w-5xl flex justify-between items-center mb-10">
-            <h2 class="text-4xl font-black italic uppercase">Tempos <span class="text-yellow-400">Gravados</span></h2>
-            <button onclick="location.href='index.html'" class="bg-zinc-900 border border-zinc-700 text-white px-8 py-3 rounded-2xl font-bold uppercase text-sm">Voltar</button>
-        </div>
-        <div class="w-full max-w-5xl bg-zinc-950 border border-zinc-900 rounded-[3rem] p-10 flex-1 shadow-2xl overflow-y-auto">
-            <div id="lista" class="space-y-4">
-                <div class="text-center py-20 text-zinc-700 uppercase tracking-[0.3em] font-bold text-sm">Sincronizando com a Nuvem...</div>
+<body class="p-4 hide-scroll">
+    <div id="app-container" class="max-w-4xl mx-auto flex flex-col h-full">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h2 class="text-3xl font-black italic uppercase tracking-tighter leading-none">Ranking <span class="text-yellow-400">Geral</span></h2>
+                <p class="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mt-1">Sessões em tempo real</p>
             </div>
+            <button onclick="location.href='index.html'" class="bg-zinc-900 border border-zinc-800 text-zinc-400 px-6 py-2 rounded-xl font-bold uppercase text-[10px] hover:bg-zinc-800 transition-all">← Voltar</button>
         </div>
-    </div>
-</body>
-</html>
