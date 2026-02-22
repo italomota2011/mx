@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cronômetro MX</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #000; color: #fff; font-family: 'Courier New', Courier, monospace; overflow: hidden; }
+        .big-time { font-size: 20vw; line-height: 1; color: #00ff00; text-shadow: 0 0 20px #00ff00; }
+        .last-lap { font-size: 5vw; color: #fb923c; }
+        .glass-ui { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="h-screen flex flex-col items-center justify-center p-4">
+
+    <div id="modalPiloto" class="fixed inset-0 bg-black z-50 flex items-center justify-center p-6">
+        <div class="bg-gray-900 p-8 rounded-2xl w-full max-w-sm border border-orange-500">
+            <h2 class="text-xl font-bold mb-4 italic">QUEM ESTÁ NO GRID?</h2>
+            <input type="text" id="nomePiloto" placeholder="Nome do Piloto" 
+                class="w-full p-4 rounded-lg bg-black border border-gray-700 mb-6 text-xl outline-none focus:border-green-500 text-white">
+            <button onclick="iniciarSessao()" class="w-full bg-green-600 py-4 rounded-xl font-bold text-lg">ENTRAR NA PISTA</button>
+        </div>
+    </div>
+
+    <div id="painelCronometro" class="hidden w-full text-center">
+        <div class="mb-4">
+            <span id="lapCount" class="text-2xl border border-white px-4 py-1 rounded-full">VOLTA 1</span>
+        </div>
+        
+        <div id="displayTime" class="big-time font-bold">00:00.00</div>
+        
+        <div class="mt-8">
+            <p class="text-gray-400 uppercase tracking-widest">Última Volta:</p>
+            <div id="lastLapTime" class="last-lap font-bold">--:--.--</div>
+        </div>
+
+        <div class="fixed bottom-10 left-0 right-0 flex justify-center gap-6 px-10">
+            <button id="btnPlayPause" onclick="toggleTimer()" class="bg-green-600 p-6 rounded-full shadow-2xl">
+                <svg id="playIcon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <button onclick="finalizarSessao()" class="bg-red-600 p-6 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, query, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Configuração Firebase (usando a sua)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
+            authDomain: "mxlaptimer.firebaseapp.com",
+            projectId: "mxlaptimer",
+            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let startTime, timerInterval;
+        let running = false;
+        let laps = [];
+        let pontoReferencia = null; // Virá da última pista mapeada
+
+        // Carregar ponto de partida da pista
+        async function carregarPista() {
+            const q = query(collection(db, "pistas"), limit(1));
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach((doc) => {
+                pontoReferencia = doc.data().pontoPartida;
+            });
+        }
+
+        window.iniciarSessao = function() {
+            const nome = document.getElementById('nomePiloto').value;
+            if (!nome) return alert("Digite seu nome!");
+            document.getElementById('modalPiloto').classList.add('hidden');
+            document.getElementById('painelCronometro').classList.remove('hidden');
+            carregarPista();
+            
+            // Tentar solicitar modo paisagem (Landscape)
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(e => console.log("Rotação automática bloqueada."));
+            }
+        };
+
+        window.toggleTimer = function() {
+            if (!running) {
+                startTime = Date.now();
+                timerInterval = setInterval(updateDisplay, 10);
+                running = true;
+                document.getElementById('playIcon').setAttribute('d', 'M6 19h4V5H6v14zm8-14v14h4V5h-4z'); // Ícone Pause
+                iniciarRastreioGPS();
+            } else {
+                clearInterval(timerInterval);
+                running = false;
+                document.getElementById('playIcon').setAttribute('d', 'M8 5v14l11-7z'); // Ícone Play
+            }
+        };
+
+        function updateDisplay() {
+            const now = Date.now();
+            const diff = now - startTime;
+            document.getElementById('displayTime').innerText = formatTime(diff);
+        }
+
+        function formatTime(ms) {
+            const minutes = Math.floor(ms / 60000);
+            const seconds = Math.floor((ms % 60000) / 1000);
+            const centiseconds = Math.floor((ms % 1000) / 10);
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
+        }
+
+        // Lógica de GPS para fechar volta
+        function iniciarRastreioGPS() {
+            navigator.geolocation.watchPosition((pos) => {
+                if (!pontoReferencia) return;
+                
+                const dist = calcularDistancia(
+                    pos.coords.latitude, pos.coords.longitude,
+                    pontoReferencia.lat, pontoReferencia.lng
+                );
+
+                // Se estiver a menos de 10 metros da linha de partida/chegada
+                if (dist < 0.01) { // 10 metros aprox.
+                    fecharVolta();
+                }
+            }, null, { enableHighAccuracy: true });
+        }
+
+        function calcularDistancia(lat1, lon1, lat2, lon2) {
+            // Fórmula simplificada de Haversine
+            const R = 6371; // Raio da terra em KM
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        function fecharVolta() {
+            const tempoFinal = Date.now() - startTime;
+            if (tempoFinal < 30000) return; // Evita fechar voltas menores que 30 seg (debounce)
+            
+            laps.push(formatTime(tempoFinal));
+            document.getElementById('lastLapTime').innerText = formatTime(tempoFinal);
+            document.getElementById('lapCount').innerText = `VOLTA ${laps.length + 1}`;
+            startTime = Date.now(); // Reseta cronômetro para nova volta
+        }
+
+        window.finalizarSessao = async function() {
+            if (confirm("Deseja salvar e sair?")) {
+                await addDoc(collection(db, "tempos"), {
+                    piloto: document.getElementById('nomePiloto').value,
+                    voltas: laps,
+                    data: new Date().toLocaleString(),
+                    timestamp: Date.now()
+                });
+                window.location.href = 'index.html';
+            }
+        };
+    </script>
+</body>
+</html>
