@@ -3,41 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MX4 Lap Timer</title>
+    <title>Mapear - MX4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { 
-            background-color: #000; 
-            height: 100dvh; 
-            margin: 0; 
-            overflow: hidden; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-family: system-ui, -apple-system, sans-serif;
-        }
-        
+        body { background-color: #000; height: 100dvh; margin: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; color: white; font-family: sans-serif; }
         @media screen and (orientation: portrait) {
-            #app-container { 
-                transform: rotate(90deg); 
-                transform-origin: center; 
-                width: 100dvh; 
-                height: 100vw; 
-                position: absolute; 
-                top: 50%; 
-                left: 50%; 
-                translate: -50% -50%; 
-            }
+            #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
         }
+        .glass { background: rgba(15, 15, 15, 0.98); border: 1px solid #222; }
+        .blink { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    </style>
+</head>
+<body>
+    <div id="app-container" class="w-full max-w-2xl flex flex-col items-center p-4">
+        
+        <div class="w-full flex justify-between items-center mb-4">
+            <h2 class="text-xl font-black italic uppercase text-white">Mapear <span class="text-yellow-400">Pista</span></h2>
+            <button onclick="window.location.href='index.html'" class="text-[10px] font-bold uppercase text-zinc-500 border border-zinc-800 px-4 py-2 rounded-xl">Voltar</button>
+        </div>
 
-        /* Ajuste responsivo para a logo não empurrar o menu */
-        .logo-mx { 
-            height: 25vh; /* Ocupa no máximo 25% da altura da tela */
-            width: auto; 
-            max-height: 140px; 
-            object-fit: contain; 
-        }
+        <div class="glass w-full p-6 rounded-[2.5rem] shadow-2xl">
+            <div class="mb-4">
+                <input type="text" id="pistaNome" placeholder="NOME DA PISTA" 
+                    class="w-full p-4 rounded-2xl bg-zinc-900 border border-zinc-800 text-center text-lg font-black uppercase text-white outline-none focus:border-orange-600">
+            </div>
 
-        .glass { 
-            background: rgba(15, 15, 15, 0.95); 
-            border
+            <div class="flex flex-col items-center py-4 bg-black/40 rounded-3xl border border-zinc-900 mb-6">
+                <div id="gpsDot" class="w-3 h-3 rounded-full bg-red-600 blink mb-2"></div>
+                <div id="gpsText" class="text-[10px] font-black uppercase italic text-zinc-500">Aguardando Sinal GPS...</div>
+                <div id="precision" class="text-[8px] font
