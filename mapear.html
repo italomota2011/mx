@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapear Pista - MX Timer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-image: url('https://raw.githubusercontent.com/italomota2011/mx/refs/heads/main/background.png');
+            background-size: cover;
+            background-position: center;
+            min-height: 100vh;
+        }
+        .glass { background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(10px); }
+        .dot { height: 10px; width: 10px; background-color: #f97316; border-radius: 50%; display: inline-block; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(0.95); opacity: 0.7; } 70% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.7; } }
+    </style>
+</head>
+<body class="text-white p-4">
+
+    <div class="max-w-md mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <button onclick="window.history.back()" class="text-gray-400">← Voltar</button>
+            <h2 class="text-xl font-bold italic text-orange-500">MAPEAR PISTA</h2>
+        </div>
+
+        <div class="glass p-6 rounded-2xl border border-gray-700">
+            <label class="block text-sm font-medium mb-2">Nome da Pista:</label>
+            <input type="text" id="pistaNome" placeholder="Ex: Pista do Italo" 
+                class="w-full p-3 rounded-lg bg-gray-900 border border-gray-600 focus:border-orange-500 mb-6 text-white outline-none">
+
+            <div id="statusGPS" class="text-center mb-6 hidden">
+                <span class="dot mr-2"></span>
+                <span class="text-orange-400 font-mono" id="coordsDisplay">Aguardando sinal...</span>
+                <p class="text-xs text-gray-400 mt-2">Gravando pontos de GPS da volta...</p>
+            </div>
+
+            <div class="flex flex-col gap-4">
+                <button id="btnGravar" onclick="iniciarMapeamento()" 
+                    class="bg-orange-600 hover:bg-orange-700 py-4 rounded-xl font-bold shadow-lg">
+                    INICIAR GRAVAÇÃO
+                </button>
+                
+                <button id="btnSalvar" onclick="salvarPista()" disabled
+                    class="bg-green-600 opacity-50 py-4 rounded-xl font-bold shadow-lg">
+                    SALVAR PISTA
+                </button>
+            </div>
+        </div>
+
+        <div class="mt-6 glass p-4 rounded-xl text-sm text-gray-300">
+            <strong>Instruções:</strong> 
+            1. Digite o nome. 2. Clique em gravar na linha de partida. 3. Dê uma volta completa. 4. Clique em salvar ao cruzar a linha novamente.
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
+            authDomain: "mxlaptimer.firebaseapp.com",
+            projectId: "mxlaptimer",
+            storageBucket: "mxlaptimer.firebasestorage.app",
+            messagingSenderId: "790485374192",
+            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let watchID = null;
+        let coordsLog = [];
+
+        window.iniciarMapeamento = function() {
+            const nome = document.getElementById('pistaNome').value;
+            if (!nome) return alert("Digite o nome da pista!");
+
+            document.getElementById('statusGPS').classList.remove('hidden');
+            document.getElementById('btnGravar').disabled = true;
+            document.getElementById('btnGravar').classList.add('opacity-50');
+            document.getElementById('btnSalvar').disabled = false;
+            document.getElementById('btnSalvar').classList.remove('opacity-50');
+
+            if ("geolocation" in navigator) {
+                watchID = navigator.geolocation.watchPosition((position) => {
+                    const { latitude, longitude } = position.coords;
+                    coordsLog.push({ lat: latitude, lng: longitude, timestamp: Date.now() });
+                    document.getElementById('coordsDisplay').innerText = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+                }, (err) => {
+                    alert("Erro no GPS: " + err.message);
+                }, {
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                    timeout: 5000
+                });
+            }
+        };
+
+        window.salvarPista = async function() {
+            if (coordsLog.length < 2) return alert("Pontos insuficientes gravados!");
+            
+            try {
+                const nome = document.getElementById('pistaNome').value;
+                await addDoc(collection(db, "pistas"), {
+                    nome: nome,
+                    pontoPartida: coordsLog[0], // O primeiro ponto é a linha de chegada
+                    trajeto: coordsLog,
+                    data: new Date().toISOString()
+                });
+                alert("Pista salva com sucesso!");
+                window.history.back();
+            } catch (e) {
+                console.error("Erro ao salvar: ", e);
+            }
+        };
+    </script>
+</body>
+</html>
