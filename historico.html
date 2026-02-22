@@ -10,18 +10,17 @@
         @media screen and (orientation: portrait) {
             #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
         }
-        .list-box { background: #111; border: 1px solid #222; height: 75%; overflow-y: auto; }
     </style>
 </head>
 <body>
-    <div id="app-container" class="w-full h-full p-6 flex flex-col items-center">
-        <div class="w-full max-w-4xl flex justify-between items-center mb-4">
-            <h2 class="text-2xl font-black italic uppercase text-white">Tempos <span class="text-yellow-400">Gravados</span></h2>
-            <button onclick="location.href='index.html'" class="bg-gray-800 text-white px-6 py-2 rounded-xl font-bold uppercase text-xs">Voltar</button>
+    <div id="app-container" class="w-full h-full p-8 flex flex-col items-center">
+        <div class="w-full max-w-5xl flex justify-between items-center mb-10">
+            <h2 class="text-4xl font-black italic uppercase">Tempos <span class="text-yellow-400">Gravados</span></h2>
+            <button onclick="location.href='index.html'" class="bg-zinc-900 border border-zinc-700 text-white px-8 py-3 rounded-2xl font-bold uppercase text-sm">Voltar</button>
         </div>
-        <div class="w-full max-w-4xl list-box rounded-[2rem] p-6 shadow-2xl">
+        <div class="w-full max-w-5xl bg-zinc-950 border border-zinc-900 rounded-[3rem] p-10 flex-1 shadow-2xl overflow-y-auto">
             <div id="lista" class="space-y-4">
-                <div class="text-center py-20 text-gray-600 uppercase tracking-widest text-xs">Buscando dados no Firebase...</div>
+                <div class="text-center py-20 text-zinc-700 uppercase tracking-[0.3em] font-bold text-sm">Sincronizando com a Nuvem...</div>
             </div>
         </div>
     </div>
