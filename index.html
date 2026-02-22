@@ -17,30 +17,51 @@
 </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            background-image: url('https://raw.githubusercontent.com/italomota2011/mx/refs/heads/main/background.png');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            height: 100vh;
-            width: 100vw;
-        }
-        .glass {
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        /* Estilo para dar um toque de "corrida" */
-        .btn-mx {
-            transition: all 0.2s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-style: italic;
-        }
-        .btn-mx:active {
-            transform: scale(0.95);
-        }
-    </style>
+    body {
+        /* Define a imagem de fundo */
+        background-image: url('https://raw.githubusercontent.com/italomota2011/mx/refs/heads/main/background.png');
+        
+        /* Ajusta a imagem para cobrir a tela inteira sem distorcer */
+        background-size: cover;
+        
+        /* Centraliza a imagem */
+        background-position: center center;
+        
+        /* Fixa o background para não rolar com o conteúdo */
+        background-attachment: fixed;
+        
+        /* Garante que o corpo ocupe exatamente a altura do visor */
+        height: 100dvh; /* dvh é melhor para mobile (ignora barras do navegador) */
+        width: 100vw;
+        margin: 0;
+        overflow: hidden; /* Remove barras de rolagem */
+        
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .glass {
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px); /* Suporte para Safari/iPhone */
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        width: 90%; /* Ocupa 90% da largura em telas pequenas */
+        max-width: 350px;
+    }
+
+    .btn-mx {
+        transition: transform 0.1s ease, background-color 0.2s;
+        text-transform: uppercase;
+        font-style: italic;
+    }
+
+    /* Feedback visual ao tocar no botão */
+    .btn-mx:active {
+        transform: scale(0.98);
+        filter: brightness(1.2);
+    }
+</style>
 </head>
 <body class="flex items-center justify-center p-6">
 
@@ -87,6 +108,7 @@
     </script>
 </body>
 </html>
+
 
 
 
