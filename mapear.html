@@ -3,146 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mapear - MX4</title>
+    <title>MX4 Lap Timer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #000; height: 100dvh; margin: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; color: white; font-family: sans-serif; }
-        @media screen and (orientation: portrait) {
-            #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
+        body { 
+            background-color: #000; 
+            height: 100dvh; 
+            margin: 0; 
+            overflow: hidden; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-family: system-ui, -apple-system, sans-serif;
         }
-        .status-badge { transition: all 0.3s ease; }
-        .blink { animation: blinker 1.5s linear infinite; }
-        @keyframes blinker { 50% { opacity: 0; } }
-    </style>
-</head>
-<body>
-    <div id="app-container" class="w-full max-w-4xl p-6 flex flex-col items-center">
         
-        <div class="w-full flex justify-between items-center mb-6">
-            <h2 class="text-3xl font-black italic uppercase tracking-tighter">Mapear <span class="text-yellow-400">Pista</span></h2>
-            <button onclick="location.href='index.html'" class="bg-zinc-900 border border-zinc-800 text-zinc-500 px-6 py-2 rounded-xl font-bold uppercase text-[10px]">← Voltar</button>
-        </div>
-
-        <div class="w-full bg-zinc-950 border border-zinc-900 p-8 rounded-[2.5rem] shadow-2xl">
-            <div class="mb-6">
-                <label class="block text-zinc-600 text-[9px] font-bold uppercase mb-2 ml-4 italic">Identificação do Traçado</label>
-                <input type="text" id="pistaNome" placeholder="EX: PISTA DO SETOR 4" 
-                    class="w-full p-5 rounded-2xl bg-zinc-900 border border-zinc-800 text-center text-xl font-black uppercase tracking-widest focus:border-orange-500 focus:outline-none text-white">
-            </div>
-
-            <div class="flex flex-col items-center mb-8">
-                <div id="gpsStatusBox" class="status-badge inline-flex items-center gap-3 px-6 py-3 rounded-full bg-zinc-900 border border-zinc-800 border-red-900/50">
-                    <div id="gpsDot" class="w-3 h-3 rounded-full bg-red-600 blink"></div>
-                    <span id="gpsText" class="text-xs font-black uppercase text-zinc-400 italic">Buscando Satélites...</span>
-                </div>
-                <div id="precisionInfo" class="text-[9px] text-zinc-700 font-bold uppercase mt-2">Precisão: calculando...</div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <button id="btnCapturar" onclick="fixarPonto()" 
-                    class="bg-zinc-800 text-zinc-500 font-black py-8 rounded-3xl uppercase text-sm border-b-4 border-zinc-900 transition-all active:scale-95 cursor-not-allowed" disabled>
-                    Capturar<br><span class="text-[10px] opacity-60">Aguardando Sinal</span>
-                </button>
-                
-                <button id="btnSalvar" onclick="salvarNoStorage()" 
-                    class="bg-zinc-800 text-zinc-500 font-black py-8 rounded-3xl uppercase text-sm border-b-4 border-zinc-900 transition-all opacity-50 cursor-not-allowed" disabled>
-                    Salvar Pista<br><span class="text-[10px] opacity-60">Ponto não definido</span>
-                </button>
-            </div>
-        </div>
-
-        <div id="coordsDebug" class="mt-6 font-mono text-[10px] text-zinc-800 uppercase tracking-tighter">
-            Aguardando hardware de GPS...
-        </div>
-    </div>
-
-    <script>
-        let lastPos = null;
-        let pontoFixado = null;
-        let watchID = null;
-
-        // Inicia o monitoramento assim que a tela abre
-        function iniciarGps() {
-            if (!navigator.geolocation) {
-                document.getElementById('gpsText').innerText = "GPS Não Suportado";
-                return;
+        @media screen and (orientation: portrait) {
+            #app-container { 
+                transform: rotate(90deg); 
+                transform-origin: center; 
+                width: 100dvh; 
+                height: 100vw; 
+                position: absolute; 
+                top: 50%; 
+                left: 50%; 
+                translate: -50% -50%; 
             }
-
-            const options = {
-                enableHighAccuracy: true,
-                maximumAge: 0,
-                timeout: 10000
-            };
-
-            watchID = navigator.geolocation.watchPosition(
-                (pos) => {
-                    lastPos = pos.coords;
-                    const accuracy = pos.coords.accuracy.toFixed(1);
-                    
-                    // Interface quando o GPS responde
-                    document.getElementById('gpsDot').classList.remove('bg-red-600', 'blink');
-                    document.getElementById('gpsDot').classList.add('bg-yellow-500');
-                    document.getElementById('gpsText').innerText = "Sinal Encontrado";
-                    document.getElementById('gpsText').classList.replace('text-zinc-400', 'text-yellow-500');
-                    document.getElementById('precisionInfo').innerText = `Precisão: ${accuracy} metros`;
-                    document.getElementById('coordsDebug').innerText = `Lat: ${pos.coords.latitude} | Lng: ${pos.coords.longitude}`;
-
-                    // Se a precisão for boa (menor que 20 metros), libera o botão de captura
-                    if (accuracy < 30) {
-                        const btnCap = document.getElementById('btnCapturar');
-                        btnCap.disabled = false;
-                        btnCap.classList.replace('bg-zinc-800', 'bg-orange-600');
-                        btnCap.classList.replace('text-zinc-500', 'text-white');
-                        btnCap.classList.replace('border-zinc-900', 'border-orange-900');
-                        btnCap.innerHTML = `Fixar Linha<br><span class='text-[10px]'>Sinal OK (${accuracy}m)</span>`;
-                        
-                        document.getElementById('gpsDot').classList.replace('bg-yellow-500', 'bg-green-500');
-                    }
-                },
-                (err) => {
-                    console.error(err);
-                    document.getElementById('gpsText').innerText = "Erro: Sem sinal";
-                },
-                options
-            );
         }
 
-        function fixarPonto() {
-            if (!lastPos) return;
-
-            pontoFixado = {
-                lat: lastPos.latitude,
-                lng: lastPos.longitude
-            };
-
-            const btnSalvar = document.getElementById('btnSalvar');
-            btnSalvar.disabled = false;
-            btnSalvar.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-zinc-800', 'text-zinc-500');
-            btnSalvar.classList.add('bg-green-600', 'text-white', 'border-green-900');
-            btnSalvar.innerHTML = `Salvar Agora<br><span class='text-[10px]'>Ponto Registrado!</span>`;
-
-            const btnCap = document.getElementById('btnCapturar');
-            btnCap.innerHTML = `Ponto Fixado ✓<br><span class='text-[10px]'>Clique para refazer</span>`;
-            
-            alert("Ponto de chegada marcado! Agora dê um nome e salve.");
+        /* Ajuste responsivo para a logo não empurrar o menu */
+        .logo-mx { 
+            height: 25vh; /* Ocupa no máximo 25% da altura da tela */
+            width: auto; 
+            max-height: 140px; 
+            object-fit: contain; 
         }
 
-        function salvarNoStorage() {
-            const nome = document.getElementById('pistaNome').value.trim();
-            if (!nome) {
-                alert("Por favor, digite o nome da pista!");
-                return;
-            }
-
-            const dados = {
-                nome: nome,
-                lat: pontoFixado.lat,
-                lng: pontoFixado.lng
-            };
-
-            localStorage.setItem('pistaAtiva', JSON.stringify(dados));
-            alert("Sucesso! Pista '" + nome + "' configurada.");
-            location.href = 'index.html';
-        }
-
-        window.onload = iniciarGps;
+        .glass { 
+            background: rgba(15, 15, 15, 0.95); 
+            border
