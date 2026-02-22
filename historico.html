@@ -6,22 +6,23 @@
     <title>Histórico - MX4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #111; height: 100dvh; margin: 0; display: flex; justify-content: center; align-items: center; }
+        body { background-color: #000; height: 100dvh; margin: 0; display: flex; align-items: center; justify-content: center; color: white; }
         @media screen and (orientation: portrait) {
             #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
         }
-        .glass-panel { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); height: 80%; }
+        .list-box { background: #111; border: 1px solid #222; height: 75%; overflow-y: auto; }
     </style>
 </head>
-<body onclick="requestLandscape()">
-    <div id="app-container" class="w-full h-full p-4 flex flex-col">
-        <div class="flex justify-between items-center mb-4">
-            <h1 class="text-2xl font-black text-white italic text-yellow-400">HISTÓRICO</h1>
-            <button onclick="location.href='index.html'" class="bg-gray-800 text-white px-6 py-2 rounded-xl font-bold uppercase">← Voltar</button>
+<body>
+    <div id="app-container" class="w-full h-full p-6 flex flex-col items-center">
+        <div class="w-full max-w-4xl flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-black italic uppercase text-white">Tempos <span class="text-yellow-400">Gravados</span></h2>
+            <button onclick="location.href='index.html'" class="bg-gray-800 text-white px-6 py-2 rounded-xl font-bold uppercase text-xs">Voltar</button>
         </div>
-        
-        <div class="flex-1 glass-panel rounded-3xl p-4 overflow-y-auto">
-            <p class="text-gray-500 text-center mt-10 uppercase text-xs tracking-widest">Selecione uma sessão para ver o gráfico</p>
+        <div class="w-full max-w-4xl list-box rounded-[2rem] p-6 shadow-2xl">
+            <div id="lista" class="space-y-4">
+                <div class="text-center py-20 text-gray-600 uppercase tracking-widest text-xs">Buscando dados no Firebase...</div>
+            </div>
         </div>
     </div>
 </body>
