@@ -24,7 +24,7 @@
     <div id="app-container" class="w-full h-full flex flex-col items-center justify-between p-4">
         
         <div class="w-full flex justify-between items-center">
-            <button onclick="encerrarSessao()" class="text-zinc-600 font-bold uppercase text-[10px] border border-zinc-800 px-4 py-2 rounded-xl italic">← Voltar</button>
+            <button onclick="window.encerrarSessao()" class="text-zinc-600 font-bold uppercase text-[10px] border border-zinc-800 px-4 py-2 rounded-xl italic">← Voltar</button>
             <div class="text-zinc-500 font-black italic text-[10px] uppercase tracking-tighter text-right leading-none">
                 <span id="txtPista">...</span><br>
                 <span id="txtPiloto" class="text-yellow-400">...</span>
@@ -41,7 +41,7 @@
                 <div id="contagemVoltas" class="text-3xl font-black italic text-white">0</div>
             </div>
 
-            <button id="btnAcao" onclick="alternarSessao()" class="bg-green-600 text-white font-black py-6 rounded-3xl uppercase text-xl border-b-4 border-green-900 active:scale-95 transition-all">
+            <button id="btnAcao" onclick="window.alternarSessao()" class="bg-green-600 text-white font-black py-6 rounded-3xl uppercase text-xl border-b-4 border-green-900 active:scale-95 transition-all">
                 Iniciar
             </button>
 
@@ -52,4 +52,14 @@
         </div>
     </div>
 
-    <script type="
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
+            authDomain: "mxlaptimer.firebaseapp.com",
+            projectId: "mxlaptimer",
+            storageBucket: "mxlaptimer.firebasestorage.app",
+            messagingSenderId: "790485374192",
+            appId: "1:790485374192:web:6e18d1863f4702
