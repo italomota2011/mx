@@ -19,7 +19,6 @@
     <div id="app-container" class="p-6">
         <div class="flex justify-between items-center mb-6">
             <a href="index.html" class="text-zinc-500 font-bold uppercase text-[10px] border border-zinc-900 px-4 py-2 rounded-xl active:bg-zinc-900">← Menu</a>
-            
             <div class="relative">
                 <select id="filtroPista" onchange="renderizar()" class="bg-zinc-900 text-white font-bold text-[10px] py-2 px-6 rounded-xl border border-zinc-800 outline-none uppercase pr-8">
                     <option value="TODAS">Todas as Pistas</option>
@@ -36,8 +35,9 @@
     </div>
 
     <script type="module">
+        // 1. IMPORTAÇÕES (Tudo que vem do Firebase precisa estar aqui no topo)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, query, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, query, onSnapshot, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
@@ -48,15 +48,26 @@
             appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
         };
 
+        // 2. INICIALIZAÇÃO
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+
+        // 3. ATIVAÇÃO DO MODO OFFLINE (Sempre logo após inicializar o 'db')
+        enableIndexedDbPersistence(db).catch((err) => {
+            if (err.code == 'failed-precondition') {
+                console.warn("Persistência falhou: Múltiplas abas abertas.");
+            } else if (err.code == 'unimplemented') {
+                console.warn("O navegador não suporta persistência offline.");
+            }
+        });
+
         let dadosRanking = {};
 
-        // Escuta a coleção "treinos" em tempo real
+        // 4. CONSULTA DE DADOS
         const q = query(collection(db, "treinos"));
 
         onSnapshot(q, (snapshot) => {
-            console.log("Total de treinos no Firebase:", snapshot.size);
+            console.log("Treinos carregados:", snapshot.size);
             dadosRanking = {};
             const select = document.getElementById('filtroPista');
             const pistasSet = new Set();
@@ -69,39 +80,32 @@
 
             snapshot.forEach(doc => {
                 const t = doc.data();
-                
-                // Validação básica: Nome da pista e se existem voltas
                 const nomePistaRaw = t.pista || "PISTA DESCONHECIDA";
                 const nomePista = nomePistaRaw.toUpperCase();
                 const voltas = t.voltas && Array.isArray(t.voltas) ? t.voltas : [];
 
                 if (voltas.length > 0) {
                     pistasSet.add(nomePista);
-
-                    // Pega a melhor volta daquela sessão
                     const melhorVoltaSessao = [...voltas].sort()[0];
 
-                    // Tratamento de Data (Firebase Timestamp ou String)
                     let dataFormatada = "00/00/0000";
                     if (t.data) {
                         try {
                             const dt = t.data.toDate ? t.data.toDate() : new Date(t.data);
                             dataFormatada = dt.toLocaleDateString('pt-BR');
-                        } catch(e) { console.error("Erro na data:", e); }
+                        } catch(e) { console.error("Erro data:", e); }
                     }
 
                     if (!dadosRanking[nomePista]) dadosRanking[nomePista] = [];
-
                     dadosRanking[nomePista].push({
                         id: doc.id,
-                        piloto: t.piloto || "Piloto S/N",
+                        piloto: t.piloto || "Anônimo",
                         tempo: melhorVoltaSessao,
                         data: dataFormatada
                     });
                 }
             });
 
-            // Atualiza o filtro de pistas
             select.innerHTML = '<option value="TODAS">Todas as Pistas</option>';
             Array.from(pistasSet).sort().forEach(p => {
                 const opt = document.createElement('option');
@@ -110,36 +114,29 @@
                 select.appendChild(opt);
             });
             select.value = valAnterior;
-
             renderizar();
-        }, (err) => {
-            console.error("Erro no Firebase:", err);
-            document.getElementById('msgStatus').innerText = "Erro de conexão com o banco.";
         });
 
         window.renderizar = function() {
             const container = document.getElementById('listaTreinos');
             const filtro = document.getElementById('filtroPista').value;
             container.innerHTML = '';
-
             const pistasEncontradas = Object.keys(dadosRanking).sort();
 
             if (pistasEncontradas.length === 0) {
-                container.innerHTML = '<div class="text-center text-zinc-800 font-bold uppercase italic text-[10px] mt-20">Aguardando dados válidos...</div>';
+                container.innerHTML = '<div class="text-center text-zinc-800 font-bold uppercase italic text-[10px] mt-20">Nenhum dado encontrado.</div>';
                 return;
             }
 
             pistasEncontradas.forEach(nomePista => {
                 if (filtro !== "TODAS" && filtro !== nomePista) return;
-
-                // Ordena os pilotos pela melhor volta (mais rápido primeiro)
                 const rankPista = dadosRanking[nomePista].sort((a, b) => a.tempo.localeCompare(b.tempo));
 
                 let html = `
                     <div class="card-pista rounded-[2rem] overflow-hidden shadow-2xl mb-8">
                         <div class="bg-zinc-900/60 p-5 border-b border-zinc-800 flex justify-between items-center">
                             <h3 class="text-sm font-black italic uppercase text-yellow-400 tracking-tighter">${nomePista}</h3>
-                            <span class="text-[7px] text-zinc-600 font-bold uppercase italic">Ranking Best Lap</span>
+                            <span class="text-[7px] text-zinc-600 font-bold uppercase italic text-right leading-none">Ranking<br>Best Lap</span>
                         </div>
                         <div class="p-3 space-y-2">
                 `;
@@ -161,7 +158,6 @@
                         </div>
                     `;
                 });
-
                 container.innerHTML += html + `</div></div>`;
             });
         };
