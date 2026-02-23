@@ -11,19 +11,20 @@
             #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
         }
         .card-pista { background: linear-gradient(180deg, #111 0%, #000 100%); border: 1px solid #222; }
+        .btn-telemetria:active { background-color: rgba(255, 255, 255, 0.1); }
     </style>
 </head>
 <body>
     <div id="app-container" class="p-6">
         <div class="flex justify-between items-center mb-6">
-            <a href="index.html" class="text-zinc-500 font-bold uppercase text-[10px] border border-zinc-900 px-4 py-2 rounded-xl">← Voltar</a>
-            <select id="filtroPista" class="bg-zinc-900 text-white font-bold text-[10px] p-2 rounded-xl border border-zinc-800 outline-none uppercase">
+            <a href="index.html" class="text-zinc-500 font-bold uppercase text-[10px] border border-zinc-900 px-4 py-2 rounded-xl">← Menu</a>
+            <select id="filtroPista" onchange="renderizar()" class="bg-zinc-900 text-white font-bold text-[10px] p-2 rounded-xl border border-zinc-800 outline-none uppercase">
                 <option value="TODAS">Todas as Pistas</option>
             </select>
         </div>
 
-        <div id="listaTreinos" class="space-y-8 max-w-2xl mx-auto pb-20">
-            <div id="statusCarregando" class="text-center text-zinc-800 font-bold uppercase italic text-xs">Buscando tempos na nuvem...</div>
+        <div id="listaTreinos" class="space-y-6 max-w-3xl mx-auto pb-20">
+            <div id="msgStatus" class="text-center text-zinc-800 font-bold uppercase italic text-xs">Buscando dados...</div>
         </div>
     </div>
 
@@ -42,20 +43,12 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        
-        let dadosLocais = {};
-        const selectFiltro = document.getElementById('filtroPista');
+        let dadosRanking = {};
 
-        // Escuta a coleção de TREINOS
-        onSnapshot(query(collection(db, "treinos")), (snapshot) => {
-            dadosLocais = {};
-            const pistasEncontradas = new Set();
+        // REMOVIDO o orderBy aqui para evitar erro de índice e garantir que os dados apareçam
+        const q = query(collection(db, "treinos"));
 
-            if (snapshot.empty) {
-                document.getElementById('listaTreinos').innerHTML = '<div class="text-center text-zinc-800 font-bold uppercase italic text-xs mt-10">Nenhum treino encontrado.</div>';
-                return;
-            }
-
-            snapshot.forEach(doc => {
-                const t = doc.data();
-                // Verifica
+        onSnapshot(q, (snapshot) => {
+            console.log("Dados recebidos do Firebase:", snapshot.size); // Debug no console do navegador
+            dadosRanking = {};
+            const select = document.getElementById('filtroPista');
