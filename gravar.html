@@ -6,24 +6,17 @@
     <title>Gravar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #000; height: 100dvh; margin: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; color: white; }
+        body { background-color: #000; height: 100dvh; margin: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; color: white; font-family: sans-serif; }
         @media screen and (orientation: portrait) {
             #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
         }
-        .time-sessao { 
-            font-size: 35vw; 
-            font-weight: 900; 
-            font-family: monospace; 
-            line-height: 1; 
-            color: #fff;
-            letter-spacing: -2px;
-        }
+        .time-sessao { font-size: 35vw; font-weight: 900; font-family: monospace; line-height: 1; color: #fff; letter-spacing: -2px; }
     </style>
 </head>
 <body>
-    <div id="app-container" class="w-full h-full flex flex-col items-center justify-between p-4">
+    <div id="app-container" class="w-full h-full flex flex-col items-center justify-between p-6">
         
-        <div class="w-full flex justify-between items-center">
+        <div class="w-full flex justify-between items-start">
             <button onclick="window.encerrarSessao()" class="text-zinc-600 font-bold uppercase text-[10px] border border-zinc-800 px-4 py-2 rounded-xl italic">← Voltar</button>
             <div class="text-zinc-500 font-black italic text-[10px] uppercase tracking-tighter text-right leading-none">
                 <span id="txtPista">...</span><br>
@@ -35,10 +28,6 @@
             <div id="timerTotal" class="time-sessao">00:00.00</div>
         </div>
 
-        <div class="w-full grid grid-cols-3 gap-4 items-center mb-2">
+        <div class="w-full grid grid-cols-3 gap-6 items-center mb-4">
             <div class="bg-zinc-950 p-4 rounded-3xl border border-zinc-900 text-center">
-                <div class="text-[9px] text-zinc-600 font-bold uppercase italic mb-1">Voltas</div>
-                <div id="contagemVoltas" class="text-3xl font-black italic text-white">0</div>
-            </div>
-
-            <button id="btnAcao" onclick="window.alternarSessao()" class="bg-green-600 text-white font-black py-6 rounded-3xl uppercase text-xl border-b-4 border-green-900 active:scale-95 transition-all">
+                <div class="text
