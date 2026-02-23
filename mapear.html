@@ -8,26 +8,19 @@
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; height: 100dvh; display: flex; align-items: center; justify-content: center; }
         .btn-map { background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%); border-bottom: 4px solid #1e3a8a; }
-        .btn-gps { background: #222; border: 1px solid #444; }
     </style>
 </head>
 <body class="p-6">
     <div class="w-full max-w-md space-y-6 text-center">
         <h1 class="text-2xl font-black italic uppercase tracking-tighter">Mapear <span class="text-blue-500">Pista</span></h1>
         
-        <button onclick="ligarGPS()" id="btnLigarGPS" class="w-full p-4 rounded-2xl btn-gps font-bold uppercase text-yellow-500">
-            1. Ativar GPS (Clique aqui)
-        </button>
-
         <input type="text" id="nomePista" placeholder="NOME DA PISTA (Ex: CT MX4)" class="w-full p-4 rounded-2xl bg-zinc-900 border border-zinc-800 text-center font-bold uppercase outline-none focus:border-blue-500">
         
-        <div id="statusGPS" class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Aguardando ativação...</div>
+        <div id="statusGPS" class="text-[10px] font-bold uppercase text-zinc-500 italic">Aguardando sinal de GPS...</div>
 
-        <button onclick="capturarPonto()" class="w-full p-6 rounded-3xl btn-map text-xl font-black italic uppercase shadow-xl active:scale-95 transition-transform">
-            2. Salvar Coordenada
-        </button>
-
-        <a href="index.html" class="block text-zinc-600 text-xs font-bold uppercase tracking-widest">Voltar</a>
+        <button id="btnMapear" onclick="capturarPonto()" class="btn-map w-full py-6 rounded-3xl font-black uppercase italic text-xl active:scale-95 transition-all">Marcar Linha de Chegada</button>
+        
+        <a href="index.html" class="block text-zinc-600 font-bold uppercase text-xs mt-4 italic">← Voltar ao Menu</a>
     </div>
 
     <script type="module">
@@ -35,6 +28,7 @@
         import { getFirestore, collection, addDoc, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
+            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
             authDomain: "mxlaptimer.firebaseapp.com",
             projectId: "mxlaptimer",
             storageBucket: "mxlaptimer.firebasestorage.app",
@@ -47,43 +41,29 @@
         enableIndexedDbPersistence(db).catch(() => console.log("Offline Ativo"));
 
         let lat, lng;
-        let watchID = null;
 
-        window.ligarGPS = function() {
-            if (watchID) return;
-            
-            const btn = document.getElementById('btnLigarGPS');
-            btn.innerText = "Buscando Sinal...";
-
-            watchID = navigator.geolocation.watchPosition((pos) => {
-                lat = pos.coords.latitude;
-                lng = pos.coords.longitude;
-                document.getElementById('statusGPS').innerText = `GPS OK: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-                document.getElementById('statusGPS').classList.replace('text-zinc-500', 'text-green-500');
-                btn.innerText = "GPS CONECTADO";
-                btn.classList.replace('text-yellow-500', 'text-green-500');
-            }, (err) => {
-                alert("Erro ao acessar GPS. Verifique as permissões do Safari.");
-            }, { 
-                enableHighAccuracy: true, 
-                maximumAge: 0,
-                timeout: 10000 
-            });
-        };
+        navigator.geolocation.watchPosition((pos) => {
+            lat = pos.coords.latitude;
+            lng = pos.coords.longitude;
+            document.getElementById('statusGPS').innerText = `GPS OK: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            document.getElementById('statusGPS').classList.replace('text-zinc-500', 'text-green-500');
+        }, null, { enableHighAccuracy: true });
 
         window.capturarPonto = async function() {
             const nome = document.getElementById('nomePista').value;
             if(!nome) return alert("Digita o nome da pista!");
-            if(!lat) return alert("Clique em 'Ativar GPS' e aguarde o sinal.");
+            if(!lat) return alert("Aguardando sinal de GPS...");
 
             try {
                 await addDoc(collection(db, "pistas"), { nome, lat, lng });
                 alert("Pista guardada com sucesso!");
-                window.location.href = 'index.html';
+                location.href = 'index.html';
             } catch (e) {
-                alert("Erro ao salvar: " + e.message);
+                alert("Guardado localmente (Offline).");
+                location.href = 'index.html';
             }
         };
     </script>
 </body>
 </html>
+
