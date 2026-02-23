@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ranking MX4</title>
+    <title>Ranking</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #000; color: white; min-height: 100dvh; margin: 0; font-family: sans-serif; overflow-x: hidden; }
@@ -11,24 +11,20 @@
             #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
         }
         .card-pista { background: linear-gradient(180deg, #111 0%, #000 100%); border: 1px solid #222; }
-        .row-ranking:nth-child(1) .posicao { color: #fbbf24; font-size: 1.5rem; } /* Ouro */
-        .row-ranking:nth-child(2) .posicao { color: #94a3b8; } /* Prata */
-        .row-ranking:nth-child(3) .posicao { color: #92400e; } /* Bronze */
-        .hide-scroll::-webkit-scrollbar { display: none; }
+        .row-ranking:nth-child(1) .posicao { color: #fbbf24; font-size: 1.5rem; }
+        .row-ranking:nth-child(2) .posicao { color: #94a3b8; }
+        .row-ranking:nth-child(3) .posicao { color: #92400e; }
     </style>
 </head>
-<body class="p-4 hide-scroll">
-    <div id="app-container" class="max-w-5xl mx-auto flex flex-col h-full">
-        <div class="flex justify-between items-end mb-8">
-            <div>
-                <h2 class="text-4xl font-black italic uppercase tracking-tighter leading-none">Hall of <span class="text-yellow-400">Fame</span></h2>
-                <p class="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mt-1">Os mais rápidos de cada pista</p>
-            </div>
-            <button onclick="location.href='index.html'" class="bg-zinc-900 border border-zinc-800 text-zinc-400 px-6 py-2 rounded-xl font-bold uppercase text-[10px] hover:bg-zinc-800 transition-all">← Menu</button>
+<body>
+    <div id="app-container" class="p-6">
+        <div class="flex justify-between items-center mb-10">
+            <a href="index.html" class="text-zinc-500 font-bold uppercase text-[10px] italic border border-zinc-900 px-4 py-2 rounded-xl">← Voltar</a>
+            <h1 class="text-3xl font-black italic uppercase tracking-tighter text-white">Hall <span class="text-yellow-500">of Fame</span></h1>
         </div>
 
-        <div id="rankingContainer" class="space-y-10 pb-20">
-            <div class="text-center py-20 text-zinc-700 animate-pulse uppercase font-black italic">Sincronizando tempos...</div>
+        <div id="listaTreinos" class="space-y-8 max-w-2xl mx-auto pb-20">
+            <div class="text-center text-zinc-700 animate-pulse font-bold uppercase italic text-xs">Carregando tempos oficiais...</div>
         </div>
     </div>
 
@@ -48,41 +44,33 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Escuta o Firebase
-        onSnapshot(collection(db, "treinos"), (snapshot) => {
-            const container = document.getElementById('rankingContainer');
-            if (snapshot.empty) {
-                container.innerHTML = '<div class="text-center py-20 text-zinc-800 font-black italic uppercase">Sem registros.</div>';
-                return;
-            }
+        const treinosRef = collection(db, "treinos");
+        const q = query(treinosRef);
 
-            const dadosBrutos = [];
-            snapshot.forEach(doc => dadosBrutos.push(doc.data()));
+        onSnapshot(q, (snapshot) => {
+            const dadosPorPista = {};
 
-            // 1. Agrupar por Pista e pegar a melhor volta de cada piloto
-            const pistas = {};
-
-            dadosBrutos.forEach(treino => {
+            snapshot.forEach((doc) => {
+                const treino = doc.data();
                 if (!treino.voltas || treino.voltas.length === 0) return;
 
-                const nomePista = treino.pista;
-                const nomePiloto = treino.piloto;
-                const melhorVoltaSessao = [...treino.voltas].sort()[0];
+                const melhorVolta = treino.voltas.sort()[0];
 
-                if (!pistas[nomePista]) pistas[nomePista] = {};
+                if (!dadosPorPista[treino.pista]) {
+                    dadosPorPista[treino.pista] = {};
+                }
 
-                // Se o piloto já tem tempo nessa pista, mantém apenas o melhor de todos os tempos dele
-                if (!pistas[nomePista][nomePiloto] || melhorVoltaSessao < pistas[nomePista][nomePiloto]) {
-                    pistas[nomePista][nomePiloto] = melhorVoltaSessao;
+                if (!dadosPorPista[treino.pista][treino.piloto] || melhorVolta < dadosPorPista[treino.pista][treino.piloto]) {
+                    dadosPorPista[treino.pista][treino.piloto] = melhorVolta;
                 }
             });
 
-            // 2. Gerar o HTML
+            const container = document.getElementById('listaTreinos');
             container.innerHTML = '';
 
-            for (const [nomePista, pilotos] of Object.entries(pistas)) {
-                // Ordenar pilotos pelo tempo (string "01:22.30" ordena corretamente)
-                const rankingOrdenado = Object.entries(pilotos).sort((a, b) => a[1].localeCompare(b[1]));
+            for (const nomePista in dadosPorPista) {
+                const rankingOrdenado = Object.entries(dadosPorPista[nomePista])
+                    .sort((a, b) => a[1].localeCompare(b[1]));
 
                 let htmlPista = `
                     <div class="card-pista rounded-[2.5rem] overflow-hidden shadow-2xl">
@@ -107,4 +95,10 @@
                     `;
                 });
 
-                htmlPista += `</div>
+                htmlPista += `</div></div>`;
+                container.innerHTML += htmlPista;
+            }
+        });
+    </script>
+</body>
+</html>
