@@ -7,52 +7,27 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            overscroll-behavior-y: contain; 
-            overflow: hidden; 
-            background-color: #000; 
-            height: 100dvh; 
-            margin: 0; 
-            color: white;
+        overscroll-behavior-y: contain; 
+    overflow: hidden; 
+}
+        body { background-color: #000; height: 100dvh; margin: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; color: white; }
+        @media screen and (orientation: portrait) {
+            #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
         }
-
-        /* ROTAÇÃO FORÇADA - CORRIGIDA PARA NÃO SUMIR */
-        #app-container { 
-            transform: rotate(90deg); 
-            transform-origin: center center; 
-            width: 100dvh; 
-            height: 100vw; 
-            position: fixed; /* Fixed evita que o container fuja da tela */
-            top: 50%; 
-            left: 50%; 
-            margin-left: -50dvh; /* Centraliza perfeitamente */
-            margin-top: -50vw;
-            display: flex; 
-            flex-direction: column; 
-            justify-content: space-between; 
-            padding: 2rem;
-        }
-
         .time-sessao { 
-            font-size: 40vw; 
+            font-size: 55vw; 
             font-weight: 900; 
             font-family: monospace; 
             line-height: 1; 
             color: #fff;
             letter-spacing: -10px;
         }
-
-        /* Força os botões a aceitarem o toque na rotação */
-        button, #btnAcao {
-            z-index: 9999 !important;
-            touch-action: manipulation;
-            cursor: pointer;
-        }
     </style>
 </head>
 <body>
-    <div id="app-container">
+    <div id="app-container" class="w-full h-full flex flex-col items-center justify-between p-4">
         <div class="w-full flex justify-between items-center">
-            <button id="btnVoltar" class="text-zinc-600 font-bold uppercase text-[12px] border border-zinc-800 px-6 py-3 rounded-xl italic">← Voltar</button>
+            <button onclick="window.encerrarSessao()" class="text-zinc-600 font-bold uppercase text-[10px] border border-zinc-800 px-4 py-2 rounded-xl italic">← Voltar</button>
             <div class="text-zinc-500 font-black italic text-[10px] uppercase tracking-tighter text-right leading-none">
                 <span id="txtPista">...</span><br>
                 <span id="txtPiloto" class="text-yellow-400">...</span>
@@ -63,19 +38,19 @@
             <div id="timerTotal" class="time-sessao">00:00</div>
         </div>
 
-        <div class="w-full grid grid-cols-3 gap-6 items-center mb-4">
+        <div class="w-full grid grid-cols-3 gap-4 items-center mb-2">
             <div class="bg-zinc-950 p-4 rounded-3xl border border-zinc-900 text-center">
-                <div class="text-[10px] text-zinc-600 font-bold uppercase italic mb-1">Voltas</div>
-                <div id="contagemVoltas" class="text-4xl font-black italic text-white">0</div>
+                <div class="text-[9px] text-zinc-600 font-bold uppercase italic mb-1">Voltas</div>
+                <div id="contagemVoltas" class="text-3xl font-black italic text-white">0</div>
             </div>
 
-            <button id="btnAcao" class="bg-green-600 text-white font-black py-8 rounded-3xl uppercase text-2xl border-b-4 border-green-900 active:scale-95 transition-all">
+            <button id="btnAcao" onclick="window.alternarSessao()" class="bg-green-600 text-white font-black py-6 rounded-3xl uppercase text-xl border-b-4 border-green-900 active:scale-95 transition-all">
                 Iniciar
             </button>
 
             <div class="bg-zinc-950 p-4 rounded-3xl border border-zinc-900 text-center">
-                <div class="text-[10px] text-zinc-600 font-bold uppercase italic mb-1 leading-tight">Status</div>
-                <div id="statusTXT" class="text-[11px] font-black italic text-zinc-500 uppercase">Pronto</div>
+                <div class="text-[9px] text-zinc-600 font-bold uppercase italic mb-1 leading-tight">Status</div>
+                <div id="statusTXT" class="text-[10px] font-black italic text-zinc-500 uppercase">Pronto</div>
             </div>
         </div>
     </div>
@@ -103,9 +78,7 @@
         let temposVoltas = [];
         let rastroTelemetria = []; 
         let marcasDeVolta = []; 
-        let lastTriggerTime = 0;
-        const TRIGGER_LOCKOUT = 10000; 
-
+        
         const pistaAtiva = JSON.parse(localStorage.getItem('pistaAtiva'));
         const pilotoAtivo = sessionStorage.getItem('pilotoAtual') || "Piloto";
 
@@ -114,8 +87,100 @@
             document.getElementById('txtPiloto').innerText = pilotoAtivo;
         }
 
-        // LÓGICA DE CLIQUE CORRIGIDA
-        const btnAcao = document.getElementById('btnAcao');
-        const btnVoltar = document.getElementById('btnVoltar');
+        window.alternarSessao = function() {
+            const btn = document.getElementById('btnAcao');
+            const status = document.getElementById('statusTXT');
+            if (!gravando) {
+                if (!pistaAtiva) return alert("Erro: Pista não encontrada.");
+                gravando = true;
+                tempoInicialSessao = Date.now();
+                ultimaMarcacaoVolta = tempoInicialSessao;
+                rastroTelemetria = [];
+                marcasDeVolta = [0]; 
+                intervalo = setInterval(atualizarCronometro, 100); 
+                iniciarMonitoramentoGPS();
+                btn.innerText = "Parar";
+                btn.style.backgroundColor = "#dc2626"; 
+                btn.style.borderBottomColor = "#7f1d1d";
+                status.innerText = "Gravando";
+            } else {
+                pararESalvar();
+            }
+        };
 
-        btnAcao.addEventListener
+        window.encerrarSessao = function() {
+            if(confirm("Deseja sair?")) window.location.href = 'index.html';
+        };
+
+        function atualizarCronometro() {
+            const ms = Date.now() - tempoInicialSessao;
+            const m = String(Math.floor(ms / 60000)).padStart(2, '0');
+            const s = String(Math.floor((ms % 60000) / 1000)).padStart(2, '0');
+            document.getElementById('timerTotal').innerText = `${m}:${s}`;
+        }
+
+        function formatarTempoBD(ms) {
+            const m = String(Math.floor(ms / 60000)).padStart(2, '0');
+            const s = String(Math.floor((ms % 60000) / 1000)).padStart(2, '0');
+            const c = String(Math.floor((ms % 1000) / 10)).padStart(2, '0');
+            return `${m}:${s}.${c}`;
+        }
+
+        function iniciarMonitoramentoGPS() {
+            watchID = navigator.geolocation.watchPosition((pos) => {
+                const agora = Date.now();
+                rastroTelemetria.push({
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    vel: pos.coords.speed ? (pos.coords.speed * 3.6).toFixed(1) : 0,
+                    ts: agora - tempoInicialSessao
+                });
+
+                const dist = calcularDistancia(pos.coords.latitude, pos.coords.longitude, pistaAtiva.lat, pistaAtiva.lng);
+                if (dist < 0.01 && (agora - ultimaMarcacaoVolta > 15000)) { 
+                    temposVoltas.push(formatarTempoBD(agora - ultimaMarcacaoVolta));
+                    voltasCount++;
+                    document.getElementById('contagemVoltas').innerText = voltasCount;
+                    ultimaMarcacaoVolta = agora;
+                    marcasDeVolta.push(rastroTelemetria.length - 1);
+                }
+            }, null, { enableHighAccuracy: true });
+        }
+
+        async function pararESalvar() {
+            clearInterval(intervalo);
+            if (watchID) navigator.geolocation.clearWatch(watchID);
+            const btn = document.getElementById('btnAcao');
+            btn.disabled = true;
+            btn.innerText = "Salvando...";
+
+            try {
+                await addDoc(collection(db, "treinos"), {
+                    piloto: pilotoAtivo,
+                    pista: pistaAtiva.nome,
+                    voltasTotal: voltasCount,
+                    voltas: temposVoltas,
+                    telemetria: rastroTelemetria,
+                    marcasDeVolta: marcasDeVolta,
+                    totalSessao: formatarTempoBD(Date.now() - tempoInicialSessao),
+                    data: serverTimestamp()
+                });
+                alert("Treino gravado com sucesso!");
+                window.location.href = 'index.html';
+            } catch (e) {
+                alert("Erro ao salvar.");
+                btn.disabled = false;
+                btn.innerText = "Parar";
+            }
+        }
+
+        function calcularDistancia(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+    </script>
+</body>
+</html>
