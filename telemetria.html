@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telemetria Avançada - MX4</title>
+    <title>Telemetria</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -11,48 +11,41 @@
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; overflow-x: hidden; }
         .glass { background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 1rem; }
-        #map { height: 350px; width: 100%; border-radius: 1rem; cursor: crosshair; }
-        /* Cores de Performance */
-        .perf-slow { color: #ff4d4d; }    /* Vermelho */
-        .perf-mid { color: #ffeb3b; }     /* Amarelo */
-        .perf-fast { color: #4caf50; }    /* Verde */
-        
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; padding: 20px; }
+        #map { height: 400px; width: 100%; border-radius: 1rem; cursor: crosshair; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; padding: 20px; }
         .modal.active { display: flex; flex-direction: column; }
-        canvas { cursor: pointer; }
+        .volta-item.ativa { border-color: #eab308; background: rgba(234, 179, 8, 0.1); }
     </style>
 </head>
 <body class="p-4">
 
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
-            <h1 id="txtPiloto" class="text-2xl font-black italic text-yellow-500 uppercase">ANÁLISE DE PERFORMANCE</h1>
-            <p id="txtPistaInfo" class="text-[10px] text-zinc-500 font-bold uppercase"></p>
+            <h1 class="text-2xl font-black italic text-yellow-500 uppercase leading-none">TELEMETRIA PRO</h1>
+            <p id="txtInfo" class="text-[10px] text-zinc-500 font-bold uppercase mt-1"></p>
         </div>
         
         <div class="flex gap-2">
-            <select id="selectComparar" onchange="window.mudarComparacao()" class="bg-zinc-900 border border-zinc-700 text-[10px] p-2 rounded-lg font-bold uppercase">
+            <select id="selectComparar" onchange="window.mudarComparacaoRapida()" class="bg-zinc-900 border border-zinc-700 text-[10px] p-2 rounded-lg font-bold uppercase text-white">
                 <option value="">Comparar com...</option>
                 <option value="melhor">Melhor Volta da Sessão</option>
-                <option value="recorde">Recorde da Pista</option>
             </select>
-            <button onclick="history.back()" class="bg-red-900/20 text-red-500 border border-red-900/50 px-4 py-2 rounded-lg text-[10px] font-black uppercase italic">Sair</button>
+            <button onclick="history.back()" class="bg-zinc-900 border border-zinc-800 px-6 py-2 rounded-xl text-[10px] font-black uppercase italic">Voltar</button>
         </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        
         <div class="lg:col-span-3 space-y-4">
             <div class="glass p-4">
                 <h3 class="text-[9px] font-black uppercase text-zinc-600 mb-3 italic">Voltas Gravadas</h3>
-                <div id="listaVoltas" class="space-y-2 max-h-[500px] overflow-y-auto pr-2"></div>
+                <div id="listaVoltas" class="space-y-2 max-h-[400px] overflow-y-auto pr-2"></div>
             </div>
             
             <div class="glass p-4">
-                <h3 class="text-[9px] font-black uppercase text-zinc-600 mb-2 italic">Legenda de G-Force</h3>
-                <div class="flex justify-between text-[10px] font-bold italic">
-                    <span class="text-red-500">FRENAGEM</span>
-                    <span class="text-green-500">ACELERAÇÃO</span>
+                <h3 class="text-[9px] font-black uppercase text-zinc-600 mb-2 italic">Análise de G-Force</h3>
+                <div class="flex justify-between text-[10px] font-bold">
+                    <span class="text-red-500 italic">● FRENAGEM</span>
+                    <span class="text-green-500 italic">● ACELERAÇÃO</span>
                 </div>
             </div>
         </div>
@@ -60,165 +53,23 @@
         <div class="lg:col-span-9 space-y-4">
             <div class="glass p-2 relative group">
                 <div id="map"></div>
-                <button onclick="window.expandir('map')" class="absolute top-4 right-4 bg-black/50 p-2 rounded-lg text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">EXPANDIR MAPA</button>
+                <button onclick="window.expandirElemento('map')" class="absolute top-4 right-4 bg-black/60 p-2 rounded-lg text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity">EXPANDIR MAPA</button>
             </div>
 
-            <div class="glass p-6 relative group">
+            <div class="glass p-6 group">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-[9px] font-black uppercase text-zinc-600 italic">Gráfico de Velocidade & Aceleração</h3>
-                    <button onclick="window.expandir('chart')" class="text-[10px] text-yellow-500 font-bold uppercase">Expandir Gráfico</button>
+                    <h3 class="text-[9px] font-black uppercase text-zinc-600 italic">Gráfico de Comparação de Performance</h3>
+                    <button onclick="window.expandirElemento('chart')" class="text-[9px] text-yellow-500 font-bold uppercase">Expandir Gráfico</button>
                 </div>
-                <div class="h-[250px]">
+                <div class="h-[300px]">
                     <canvas id="mainChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="modalExp" class="modal">
+    <div id="modalExp" class="modal" onclick="window.fecharModal()">
         <div class="flex justify-between mb-4">
-            <h2 class="text-yellow-500 font-black italic uppercase" id="modalTitle">Visualização Expandida</h2>
-            <button onclick="window.fecharModal()" class="text-white font-bold uppercase text-xs">Fechar [X]</button>
+            <h2 class="text-yellow-500 font-black italic uppercase text-lg">Visualização Detalhada</h2>
+            <span class="text-zinc-500 text-xs uppercase">Clique em qualquer lugar para fechar</span>
         </div>
-        <div id="modalContent" class="flex-1 bg-zinc-950 rounded-2xl overflow-hidden"></div>
-    </div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, getDoc, collection, query, where, getDocs, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
-            authDomain: "mxlaptimer.firebaseapp.com",
-            projectId: "mxlaptimer",
-            storageBucket: "mxlaptimer.firebasestorage.app",
-            messagingSenderId: "790485374192",
-            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const urlParams = new URLSearchParams(window.location.search);
-        const treinoId = urlParams.get('id');
-
-        let map, chart, marker;
-        let dadosTreino, recordePista;
-
-        async function init() {
-            if (!treinoId) return;
-            const snap = await getDoc(doc(db, "treinos", treinoId));
-            if (!snap.exists()) return;
-            dadosTreino = snap.data();
-
-            document.getElementById('txtPiloto').innerText = dadosTreino.piloto;
-            document.getElementById('txtPistaInfo').innerText = `${dadosTreino.pista} • ${new Date(dadosTreino.data?.toDate()).toLocaleDateString()}`;
-
-            renderListaVoltas();
-            renderMapa(dadosTreino.telemetria);
-            renderGrafico(dadosTreino.telemetria);
-            buscarRecordePista(dadosTreino.pista);
-        }
-
-        function renderListaVoltas() {
-            const container = document.getElementById('listaVoltas');
-            const voltas = dadosTreino.voltas || [];
-            const melhor = [...voltas].sort()[0];
-
-            container.innerHTML = voltas.map((v, i) => `
-                <div onclick="window.compararVolta(${i})" class="glass border-zinc-900 p-3 flex justify-between items-center cursor-pointer hover:border-yellow-500 transition-all ${v === melhor ? 'border-yellow-600 bg-yellow-600/5' : ''}">
-                    <div class="flex flex-col">
-                        <span class="text-[8px] font-black text-zinc-500 uppercase italic">Volta ${i+1}</span>
-                        <span class="font-mono text-sm font-bold">${v}</span>
-                    </div>
-                    ${v === melhor ? '<span class="text-[8px] bg-yellow-600 px-2 py-0.5 rounded text-black font-black uppercase">Melhor</span>' : ''}
-                </div>
-            `).join('');
-        }
-
-        function renderMapa(pontos) {
-            if (map) map.remove();
-            const coords = pontos.map(p => [p.lat, p.lng]);
-            map = L.map('map', { zoomControl: false }).setView(coords[0], 16);
-            
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-
-            // Desenha o rastro com cores de performance
-            pontos.forEach((p, i) => {
-                if (i === 0) return;
-                const prev = pontos[i-1];
-                let cor = "#ffeb3b"; // Amarelo
-                if (p.vel > 80) cor = "#4caf50"; // Verde (Rápido)
-                if (p.vel < 40) cor = "#ff4d4d"; // Vermelho (Lento)
-
-                L.polyline([[prev.lat, prev.lng], [p.lat, p.lng]], {
-                    color: cor,
-                    weight: 5,
-                    opacity: 0.9
-                }).addTo(map);
-            });
-
-            marker = L.circleMarker(coords[0], { radius: 6, color: '#fff', fillColor: '#007bff', fillOpacity: 1 }).addTo(map);
-            map.fitBounds(L.polyline(coords).getBounds());
-        }
-
-        function renderGrafico(pontos) {
-            const ctx = document.getElementById('mainChart').getContext('2d');
-            if (chart) chart.destroy();
-
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: pontos.map(p => (p.ts / 1000).toFixed(1) + 's'),
-                    datasets: [
-                        {
-                            label: 'Sua Velocidade',
-                            data: pontos.map(p => p.vel),
-                            borderColor: '#eab308',
-                            borderWidth: 3,
-                            pointRadius: 0,
-                            tension: 0.3
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    onHover: (e, el) => {
-                        if (el.length > 0) {
-                            const idx = el[0].index;
-                            const p = pontos[idx];
-                            marker.setLatLng([p.lat, p.lng]);
-                        }
-                    },
-                    scales: {
-                        y: { grid: { color: '#1a1a1a' }, ticks: { color: '#555' } },
-                        x: { display: false }
-                    }
-                }
-            });
-        }
-
-        // Funções de Expansão e Comparação
-        window.expandir = function(tipo) {
-            const modal = document.getElementById('modalExp');
-            const content = document.getElementById('modalContent');
-            modal.classList.add('active');
-            
-            if(tipo === 'map') {
-                content.innerHTML = '<div id="mapExp" style="height:100%"></div>';
-                // Lógica de clonar mapa aqui...
-            }
-        };
-
-        window.fecharModal = () => document.getElementById('modalExp').classList.remove('active');
-
-        async function buscarRecordePista(pistaNome) {
-            const q = query(collection(db, "treinos"), where("pista", "==", pistaNome), orderBy("totalSessao"), limit(1));
-            const snap = await getDocs(q);
-            if (!snap.empty) recordePista = snap.docs[0].data();
-        }
-
-        init();
-    </script>
-</body>
-</html>
