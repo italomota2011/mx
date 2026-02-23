@@ -11,34 +11,51 @@
         #app-container {
             width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%) rotate(90deg);
-            display: flex; flex-direction: column; padding: 2vh 5vh; box-sizing: border-box;
+            display: flex; flex-direction: column; padding: 2vh 4vh; box-sizing: border-box;
         }
 
         @media screen and (orientation: landscape) {
             #app-container { transform: translate(-50%, -50%) rotate(0deg); width: 100vw; height: 100vh; }
         }
 
-        .centro-cronometro { flex: 1; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+        /* Ajuste do tamanho para não esmagar os outros elementos */
+        .centro-cronometro { 
+            flex: 1; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 0; /* Permite que o flex encolha se necessário */
+        }
         
         .time-sessao { 
-            font-size: 30vw; 
-            font-weight: 900; font-family: 'Courier New', Courier, monospace; 
-            color: #fff; line-height: 1; letter-spacing: -5px;
+            font-size: 50vw;             font-weight: 900; 
+            font-family: 'Courier New', Courier, monospace; 
+            color: #fff; 
+            line-height: 1; 
+            letter-spacing: -5px;
         }
 
-        #btnAcao { pointer-events: auto !important; z-index: 100; transition: all 0.2s; }
+        /* Garante que o rodapé sempre tenha espaço e fique visível */
+        .rodape-infos {
+            height: 20vh;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            width: 100%;
+            padding-bottom: 10px;
+        }
     </style>
 </head>
 <body>
     <div id="app-container">
-        <div class="w-full flex justify-between items-start">
+        <div class="w-full flex justify-between items-start h-[10vh]">
             <div>
-                <h1 id="pistaNome" class="text-xl font-black italic uppercase text-yellow-500">---</h1>
+                <h1 id="pistaNome" class="text-lg font-black italic uppercase text-yellow-500">---</h1>
                 <p id="pilotoNome" class="text-[10px] font-bold uppercase text-zinc-500">PILOTO</p>
             </div>
             <div class="text-right">
                 <div id="statusGPS" class="text-[10px] font-bold uppercase text-red-500">BUSCA GPS</div>
-                <div id="infoSetor" class="text-[9px] font-black text-zinc-400 mt-1 uppercase italic bg-zinc-900 px-3 py-1 rounded-full tracking-widest">STANDBY</div>
+                <div id="infoSetor" class="text-[9px] font-black text-zinc-400 mt-1 uppercase italic bg-zinc-900 px-3 py-1 rounded-full">STANDBY</div>
             </div>
         </div>
 
@@ -46,3 +63,57 @@
             <div id="displayTempo" class="time-sessao">00:00</div>
         </div>
 
+        <div class="rodape-infos">
+            <div class="flex gap-10">
+                <div class="text-left">
+                    <p class="text-[10px] text-zinc-500 font-bold uppercase">Voltas</p>
+                    <p id="voltas" class="text-5xl font-black italic text-white leading-none">0</p>
+                </div>
+                <div class="text-left">
+                    <p class="text-[10px] text-zinc-500 font-bold uppercase">Última</p>
+                    <p id="ultimaVolta" class="text-5xl font-black italic text-zinc-400 leading-none">--:--</p>
+                </div>
+            </div>
+
+            <button id="btnAcao" onclick="toggleGravar()" class="bg-green-600 text-white h-16 px-12 rounded-2xl font-black uppercase italic text-2xl shadow-2xl active:scale-95 transition-all">
+                Iniciar
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBw-p_Gk...", 
+            authDomain: "mxlaptimer.firebaseapp.com",
+            projectId: "mxlaptimer",
+            storageBucket: "mxlaptimer.firebasestorage.app",
+            messagingSenderId: "790485374192",
+            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let gravando = false;
+        let tempoInicioVolta = 0;
+        let voltasCount = 0;
+        let temposVoltas = [];
+        let watchID = null;
+        let pontoAtual = 0; 
+        let temposSetoresVoltaAtual = [];
+        let ultimoTimestampCorte = 0;
+        let lastTriggerTime = 0;
+        const TRIGGER_LOCKOUT = 10000; 
+
+        const pistaAtiva = JSON.parse(localStorage.getItem('pistaAtiva'));
+        const pilotoAtivo = sessionStorage.getItem('pilotoAtual');
+
+        if(pistaAtiva) {
+            document.getElementById('pistaNome').innerText = pistaAtiva.nome;
+            document.getElementById('pilotoNome').innerText = pilotoAtivo || "Piloto";
+        }
+
+        window.toggleGra
