@@ -5,7 +5,7 @@ const ASSETS_TO_CACHE = [
   './index.html',
   './manifest.json',
   // Adicione aqui outros arquivos locais como .css ou .js se tiver
-  'https://raw.githubusercontent.com/italomota2011/mx/refs/heads/main/background.png'
+  'https://github.com/italomota2011/mx/blob/main/icon.jpg'
 ];
 
 // Instalação: Salva os arquivos no cache
