@@ -133,7 +133,7 @@
                 });
 
                 const dist = calcularDistancia(pos.coords.latitude, pos.coords.longitude, pistaAtiva.lat, pistaAtiva.lng);
-                if (dist < 0.025 && (agora - ultimaMarcacaoVolta > 15000)) { 
+                if (dist < 0.01 && (agora - ultimaMarcacaoVolta > 15000)) { 
                     temposVoltas.push(formatarTempoBD(agora - ultimaMarcacaoVolta));
                     voltasCount++;
                     document.getElementById('contagemVoltas').innerText = voltasCount;
@@ -182,3 +182,4 @@
     </script>
 </body>
 </html>
+
