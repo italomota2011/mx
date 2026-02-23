@@ -1,33 +1,17 @@
 {
-  "id": "com.mxlaptimer.app",
-  "name": "MX Lap Timer",
-  "short_name": "MXTimer",
-  "description": "Cronómetro de Motocross via GPS",
-  "start_url": "./index.html",
-  "scope": "./",
-  "display": "standalone",
-  "display_override": ["fullscreen", "standalone"],
-  "background_color": "#000000",
-  "theme_color": "#ea580c",
-  "orientation": "landscape",
+  "short_name": "MX4 Timer",
+  "name": "MX4 Lap Timer - Performance",
   "icons": [
     {
-      "src": "https://github.com/italomota2011/mx/blob/main/icon.jpg?raw=true",
-      "sizes": "192x192",
-      "type": "image/jpeg",
-      "purpose": "any"
-    },
-    {
-      "src": "https://github.com/italomota2011/mx/blob/main/icon.jpg?raw=true",
+      "src": "https://raw.githubusercontent.com/italomota2011/mx/refs/heads/main/logo.png",
       "sizes": "512x512",
-      "type": "image/jpeg",
-      "purpose": "any"
-    },
-    {
-      "src": "https://github.com/italomota2011/mx/blob/main/icon.jpg?raw=true",
-      "sizes": "512x512",
-      "type": "image/jpeg",
-      "purpose": "maskable"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
-  ]
+  ],
+  "start_url": "index.html",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "display": "standalone",
+  "orientation": "landscape"
 }
