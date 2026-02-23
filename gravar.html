@@ -36,4 +36,145 @@
                 <div id="timerTotal" class="text-xl font-bold font-mono text-white">00:00</div>
             </div>
 
-            <button id="btnAcao" onclick="alternarSessao()" class="bg-green-600 text-white
+            <button id="btnAcao" onclick="alternarSessao()" class="bg-green-600 text-white font-black py-5 rounded-2xl uppercase text-lg border-b-4 border-green-900 active:scale-95 transition-all shadow-lg">
+                Iniciar
+            </button>
+
+            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-900 text-center">
+                <div class="text-[9px] text-zinc-600 font-bold uppercase italic leading-none mb-1">Voltas</div>
+                <div id="contagemVoltas" class="text-xl font-black italic text-white">0</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Sua configuração original
+        const firebaseConfig = {
+            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
+            authDomain: "mxlaptimer.firebaseapp.com",
+            projectId: "mxlaptimer",
+            storageBucket: "mxlaptimer.firebasestorage.app",
+            messagingSenderId: "790485374192",
+            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let gravando = false;
+        let tempoInicialVolta, tempoInicialSessao, intervalo;
+        let watchID = null;
+        let voltasExecutadas = [];
+        
+        const pistaAtiva = JSON.parse(localStorage.getItem('pistaAtiva'));
+        const pilotoAtivo = sessionStorage.getItem('pilotoAtual') || "Piloto";
+
+        if(pistaAtiva) {
+            document.getElementById('txtPista').innerText = pistaAtiva.nome;
+            document.getElementById('txtPiloto').innerText = pilotoAtivo;
+        }
+
+        window.alternarSessao = function() {
+            if (!pistaAtiva) return alert("Mapeie a pista!");
+            
+            const btn = document.getElementById('btnAcao');
+            if (!gravando) {
+                gravando = true;
+                tempoInicialSessao = tempoInicialVolta = Date.now();
+                intervalo = setInterval(atualizarRelogios, 10);
+                iniciarMonitoramentoGPS();
+                
+                // Mudar para VERMELHO ao iniciar
+                btn.innerText = "Parar";
+                btn.classList.remove('bg-green-600', 'border-green-900');
+                btn.classList.add('bg-red-600', 'border-red-900');
+            } else {
+                pararESalvar();
+            }
+        };
+
+        function atualizarRelogios() {
+            const agora = Date.now();
+            document.getElementById('timerVolta').innerText = formatar(agora - tempoInicialVolta);
+            
+            const total = Math.floor((agora - tempoInicialSessao) / 1000);
+            const m = String(Math.floor(total/60)).padStart(2,'0');
+            const s = String(total%60).padStart(2,'0');
+            document.getElementById('timerTotal').innerText = `${m}:${s}`;
+        }
+
+        function formatar(ms) {
+            const d = new Date(ms);
+            const m = String(d.getUTCMinutes()).padStart(2, '0');
+            const s = String(d.getUTCSeconds()).padStart(2, '0');
+            const mil = String(Math.floor(d.getUTCMilliseconds() / 10)).padStart(2, '0');
+            return `${m}:${s}.${mil}`;
+        }
+
+        function iniciarMonitoramentoGPS() {
+            if ("geolocation" in navigator) {
+                watchID = navigator.geolocation.watchPosition((pos) => {
+                    const dist = calcularDistancia(
+                        pos.coords.latitude, pos.coords.longitude,
+                        pistaAtiva.lat, pistaAtiva.lng
+                    );
+                    if (dist < 0.015) marcarVolta(); // Sensibilidade de 15 metros
+                }, null, { enableHighAccuracy: true });
+            }
+        }
+
+        function marcarVolta() {
+            const agora = Date.now();
+            const duracao = agora - tempoInicialVolta;
+            if (duracao < 15000) return; // Trava de 15 segundos
+
+            const tempoFormatado = formatar(duracao);
+            voltasExecutadas.push(tempoFormatado);
+            document.getElementById('ultimaVolta').innerText = `Última: ${tempoFormatado}`;
+            document.getElementById('contagemVoltas').innerText = voltasExecutadas.length;
+            tempoInicialVolta = agora;
+        }
+
+        async function pararESalvar() {
+            clearInterval(intervalo);
+            if (watchID) navigator.geolocation.clearWatch(watchID);
+            
+            const btn = document.getElementById('btnAcao');
+            btn.disabled = true;
+            btn.innerText = "Salvando...";
+
+            try {
+                await addDoc(collection(db, "treinos"), {
+                    piloto: pilotoAtivo,
+                    pista: pistaAtiva.nome,
+                    voltas: voltasExecutadas,
+                    totalSessao: document.getElementById('timerTotal').innerText,
+                    data: serverTimestamp()
+                });
+                alert("Treino salvo com sucesso!");
+                location.href = 'index.html';
+            } catch (e) {
+                alert("Erro ao salvar: " + e.message);
+                btn.disabled = false;
+                btn.innerText = "Tentar Denovo";
+            }
+        }
+
+        function calcularDistancia(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        window.encerrarSessao = () => {
+            if(confirm("Sair sem salvar?")) location.href = 'index.html';
+        };
+    </script>
+</body>
+</html>
