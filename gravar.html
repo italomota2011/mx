@@ -11,12 +11,12 @@
             #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
         }
         .time-sessao { 
-            font-size: 55vw; /* Aumentei um pouco já que tem menos números agora */
+            font-size: 55vw; 
             font-weight: 900; 
             font-family: monospace; 
             line-height: 1; 
             color: #fff;
-            letter-spacing: -10px;
+            letter-spacing: -5px;
         }
     </style>
 </head>
@@ -53,4 +53,22 @@
     </div>
 
     <script type="module">
-        import {
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
+            authDomain: "mxlaptimer.firebaseapp.com",
+            projectId: "mxlaptimer",
+            storageBucket: "mxlaptimer.firebasestorage.app",
+            messagingSenderId: "790485374192",
+            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let gravando = false;
+        let tempoInicialSessao, intervalo, watchID;
+        let voltasCount = 0;
+        let ultimaMarcacaoVolta = 0;
