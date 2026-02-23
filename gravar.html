@@ -18,32 +18,22 @@
             #app-container { transform: translate(-50%, -50%) rotate(0deg); width: 100vw; height: 100vh; }
         }
 
-        /* Ajuste do tamanho para não esmagar os outros elementos */
         .centro-cronometro { 
-            flex: 1; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            min-height: 0; /* Permite que o flex encolha se necessário */
+            flex: 1; display: flex; align-items: center; justify-content: center; 
+            min-height: 0; pointer-events: none; /* Cliques passam pelo centro */
         }
         
         .time-sessao { 
-            font-size: 50vw;             font-weight: 900; 
-            font-family: 'Courier New', Courier, monospace; 
-            color: #fff; 
-            line-height: 1; 
-            letter-spacing: -5px;
+            font-size: 50vw; font-weight: 900; font-family: 'Courier New', Courier, monospace; 
+            color: #fff; line-height: 1; letter-spacing: -5px;
         }
 
-        /* Garante que o rodapé sempre tenha espaço e fique visível */
         .rodape-infos {
-            height: 20vh;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            width: 100%;
-            padding-bottom: 10px;
+            height: 25vh; display: flex; justify-content: space-between;
+            align-items: center; width: 100%; position: relative; z-index: 999;
         }
+
+        #btnAcao { pointer-events: auto !important; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -75,7 +65,7 @@
                 </div>
             </div>
 
-            <button id="btnAcao" onclick="toggleGravar()" class="bg-green-600 text-white h-16 px-12 rounded-2xl font-black uppercase italic text-2xl shadow-2xl active:scale-95 transition-all">
+            <button id="btnAcao" class="bg-green-600 text-white h-16 px-12 rounded-2xl font-black uppercase italic text-2xl shadow-2xl active:scale-95 transition-all">
                 Iniciar
             </button>
         </div>
@@ -116,4 +106,65 @@
             document.getElementById('pilotoNome').innerText = pilotoAtivo || "Piloto";
         }
 
-        window.toggleGra
+        // NOVO: Escutador de clique robusto
+        const btnAcao = document.getElementById('btnAcao');
+        btnAcao.addEventListener('click', () => {
+            if (!gravando) {
+                iniciar();
+            } else {
+                parar();
+            }
+        });
+
+        function iniciar() {
+            gravando = true;
+            btnAcao.innerText = "PARAR";
+            btnAcao.classList.replace('bg-green-600', 'bg-red-600');
+
+            watchID = navigator.geolocation.watchPosition(processarPosicao, (err) => {
+                console.error("GPS Error:", err);
+            }, {
+                enableHighAccuracy: true,
+                maximumAge: 0,
+                timeout: 10000
+            });
+            atualizarCronometro();
+        }
+
+        function processarPosicao(pos) {
+            const { latitude: lat, longitude: lng } = pos.coords;
+            const agora = Date.now();
+            document.getElementById('statusGPS').innerText = "GPS OK";
+            document.getElementById('statusGPS').classList.replace('text-red-500', 'text-green-500');
+
+            if (gravando) {
+                const pontosPista = pistaAtiva.checkpoints || [{ lat: pistaAtiva.lat, lng: pistaAtiva.lng, tipo: "chegada" }];
+                const alvo = pontosPista[pontoAtual];
+                const dist = calcularDistancia(lat, lng, alvo.lat, alvo.lng);
+                
+                const nomesSetores = ["S4", "S1", "S2", "S3"];
+                document.getElementById('infoSetor').innerText = `${nomesSetores[pontoAtual]}`;
+
+                if (dist < 0.025 && (agora - lastTriggerTime) > TRIGGER_LOCKOUT) { 
+                    lastTriggerTime = agora;
+                    if (alvo.tipo === "chegada") {
+                        if (tempoInicioVolta > 0) {
+                            const tempoTotalVolta = agora - tempoInicioVolta;
+                            temposSetoresVoltaAtual.push(agora - ultimoTimestampCorte);
+                            temposVoltas.push({
+                                total: formatarTempoBD(tempoTotalVolta),
+                                ms: tempoTotalVolta,
+                                setores: [...temposSetoresVoltaAtual]
+                            });
+                            document.getElementById('ultimaVolta').innerText = formatarTempoTela(tempoTotalVolta);
+                            voltasCount++;
+                            document.getElementById('voltas').innerText = voltasCount;
+                        }
+                        tempoInicioVolta = agora;
+                        ultimoTimestampCorte = agora;
+                        temposSetoresVoltaAtual = [];
+                        pontoAtual = pontosPista.length > 1 ? 1 : 0; 
+                    } else { 
+                        temposSetoresVoltaAtual.push(agora - ultimoTimestampCorte);
+                        ultimoTimestampCorte = agora;
+                        pontoAtual = (pontoAtual + 1) % pontosPista.length;
