@@ -9,57 +9,52 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; }
-        .glass { background: rgba(20, 20, 20, 0.8); border: 1px solid #333; backdrop-filter: blur(10px); }
-        #map { height: 250px; width: 100%; border-radius: 20px; }
-        /* Estilo para o modo expansão (Modal) */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 50; padding: 20px; }
-        .modal.active { display: flex; flex-direction: column; }
-        #fullMap { flex: 1; border-radius: 20px; }
-        #fullChartCanvas { background: #000; }
+        body { background: #000; color: #fff; font-family: sans-serif; overflow-x: hidden; }
+        .glass { background: rgba(15, 15, 15, 0.9); border: 1px solid #222; backdrop-filter: blur(10px); border-radius: 2rem; }
+        #map { height: 250px; width: 100%; border-radius: 1.5rem; }
+        /* MODAL FULLSCREEN */
+        #modalZoom { display: none; position: fixed; inset: 0; background: #000; z-index: 100; padding: 20px; flex-direction: column; }
+        #modalZoom.active { display: flex; }
+        #fullCanvas { flex: 1; width: 100%; height: 100%; border-radius: 1.5rem; }
     </style>
 </head>
 <body class="p-4">
 
     <div class="flex justify-between items-center mb-6">
         <div>
-            <h1 id="pilotoNome" class="text-2xl font-black italic uppercase text-yellow-500">Telemetria</h1>
-            <p id="infoTreino" class="text-xs text-zinc-500 font-bold uppercase"></p>
+            <h1 id="txtPiloto" class="text-2xl font-black italic uppercase text-yellow-500">Telemetria</h1>
+            <p id="txtInfo" class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest"></p>
         </div>
-        <button onclick="history.back()" class="bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-xl text-[10px] font-bold">VOLTAR</button>
+        <button onclick="history.back()" class="bg-zinc-900 px-4 py-2 rounded-xl text-[10px] font-bold border border-zinc-800">VOLTAR</button>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="md:col-span-2 space-y-6">
-            
-            <div class="glass p-2 rounded-[2rem] cursor-pointer" onclick="abrirZoom('mapa')">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-6">
+            <div class="glass p-2 cursor-pointer" onclick="abrirZoom('mapa')">
                 <div id="map"></div>
-                <p class="text-[10px] text-center text-zinc-600 mt-2 font-bold uppercase italic">Clique para expandir mapa</p>
+                <p class="text-[9px] text-center text-zinc-600 mt-2 font-bold uppercase italic tracking-tighter">Clique no mapa para expandir análise</p>
             </div>
 
-            <div class="glass p-5 rounded-[2rem] cursor-pointer" onclick="abrirZoom('grafico')">
-                <canvas id="speedChart" height="150"></canvas>
-                <p class="text-[10px] text-center text-zinc-600 mt-2 font-bold uppercase italic">Clique para analisar velocidade</p>
+            <div class="glass p-5 cursor-pointer" onclick="abrirZoom('grafico')">
+                <canvas id="speedChart" height="120"></canvas>
+                <p class="text-[9px] text-center text-zinc-600 mt-2 font-bold uppercase italic tracking-tighter">Clique no gráfico para ver velocidades</p>
             </div>
         </div>
 
-        <div class="glass rounded-[2rem] p-4 h-fit">
-            <h2 class="text-xs font-black uppercase italic mb-4 text-zinc-400">Tabela de Voltas</h2>
-            <div id="listaVoltas" class="space-y-2">
-                </div>
+        <div class="glass p-4 h-fit">
+            <h2 class="text-xs font-black uppercase italic mb-4 text-zinc-500">Tempos por Volta</h2>
+            <div id="listaVoltas" class="space-y-2"></div>
         </div>
     </div>
 
-    <div id="modalZoom" class="modal">
+    <div id="modalZoom">
         <div class="flex justify-between items-center mb-4">
-            <h2 id="modalTitle" class="text-xl font-black italic uppercase">Análise Detalhada</h2>
-            <button onclick="fecharZoom()" class="bg-red-600 text-white px-6 py-2 rounded-full font-black uppercase">Fechar</button>
+            <h2 id="modalTitle" class="text-xl font-black italic uppercase text-yellow-500">Análise Detalhada</h2>
+            <button onclick="fecharZoom()" class="bg-zinc-800 text-white px-6 py-2 rounded-full font-black uppercase text-xs">Fechar</button>
         </div>
-        <div id="containerMapaFull" class="hidden flex-1">
-            <div id="fullMap"></div>
-        </div>
-        <div id="containerGraficoFull" class="hidden flex-1 bg-zinc-950 rounded-3xl p-4">
-            <canvas id="fullChartCanvas"></canvas>
+        <div id="fullMap" class="hidden flex-1 rounded-3xl overflow-hidden"></div>
+        <div id="fullChartContainer" class="hidden flex-1 bg-zinc-950 p-4 rounded-3xl">
+            <canvas id="fullCanvas"></canvas>
         </div>
     </div>
 
@@ -78,103 +73,75 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-
         const urlParams = new URLSearchParams(window.location.search);
         const treinoId = urlParams.get('id');
 
-        let dadosTelemetria = [];
+        let dados = null;
 
-        async function carregarDados() {
-            if(!treinoId) return;
-            const docRef = doc(db, "treinos", treinoId);
-            const snap = await getDoc(docRef);
-
+        async function carregar() {
+            const snap = await getDoc(doc(db, "treinos", treinoId));
             if (snap.exists()) {
-                const d = snap.data();
-                dadosTelemetria = d.telemetria || [];
+                dados = snap.data();
+                document.getElementById('txtPiloto').innerText = dados.piloto;
+                document.getElementById('txtInfo').innerText = `${dados.pista} • ${new Date(dados.data.seconds*1000).toLocaleDateString()}`;
                 
-                document.getElementById('pilotoNome').innerText = d.piloto;
-                document.getElementById('infoTreino').innerText = `${d.pista} • ${new Date(d.data.seconds*1000).toLocaleDateString()}`;
-
-                // Preencher Voltas
-                const melhorTempo = [...d.voltas].sort()[0];
-                document.getElementById('listaVoltas').innerHTML = d.voltas.map((v, i) => `
-                    <div class="flex justify-between p-3 rounded-2xl bg-zinc-900/50 border ${v === melhorTempo ? 'border-yellow-500' : 'border-zinc-800'}">
-                        <span class="text-xs font-bold text-zinc-600">${i+1}ª</span>
-                        <span class="font-mono font-bold ${v === melhorTempo ? 'text-yellow-500' : 'text-white'}">${v}</span>
+                const melhor = [...dados.voltas].sort()[0];
+                document.getElementById('listaVoltas').innerHTML = dados.voltas.map((v, i) => `
+                    <div class="flex justify-between p-3 rounded-2xl bg-zinc-900 border ${v === melhor ? 'border-yellow-500' : 'border-zinc-800'}">
+                        <span class="text-xs font-bold text-zinc-600 italic">${i+1}ª</span>
+                        <span class="font-mono font-bold ${v === melhor ? 'text-yellow-500' : 'text-white'}">${v}</span>
                     </div>
                 `).join('');
 
-                if(dadosTelemetria.length > 0) {
-                    desenharMapa('map', 16);
-                    desenharGrafico('speedChart');
+                if (dados.telemetria) {
+                    gerarMapa('map', 16);
+                    gerarGrafico('speedChart');
                 }
             }
         }
 
-        function desenharMapa(elementId, zoom) {
-            const coords = dadosTelemetria.map(p => [p.lat, p.lng]);
-            const map = L.map(elementId, { zoomControl: false }).setView(coords[0], zoom);
+        function gerarMapa(divId, zoom) {
+            const coords = dados.telemetria.map(p => [p.lat, p.lng]);
+            const map = L.map(divId, {zoomControl: false}).setView(coords[0], zoom);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-            
-            // Desenha a linha colorida (verde se rápido, vermelho se devagar)
-            for(let i=0; i < coords.length - 1; i++) {
-                const vel = dadosTelemetria[i].vel;
-                const cor = vel > 40 ? '#22c55e' : (vel < 15 ? '#ef4444' : '#facc15');
-                L.polyline([coords[i], coords[i+1]], {color: cor, weight: 5}).addTo(map);
+            for(let i=0; i<coords.length-1; i++) {
+                const v = dados.telemetria[i].vel;
+                const cor = v > 40 ? '#22c55e' : (v < 15 ? '#ef4444' : '#facc15');
+                L.polyline([coords[i], coords[i+1]], {color: cor, weight: 6}).addTo(map);
             }
             map.fitBounds(coords);
         }
 
-        function desenharGrafico(canvasId) {
-            const ctx = document.getElementById(canvasId).getContext('2d');
-            new Chart(ctx, {
+        function gerarGrafico(canvasId) {
+            new Chart(document.getElementById(canvasId), {
                 type: 'line',
                 data: {
-                    labels: dadosTelemetria.map(p => ""),
-                    datasets: [{
-                        label: 'Velocidade (km/h)',
-                        data: dadosTelemetria.map(p => p.vel),
-                        borderColor: '#eab308',
-                        backgroundColor: 'rgba(234, 179, 8, 0.1)',
-                        fill: true,
-                        pointRadius: 0,
-                        borderWidth: 2
-                    }]
+                    labels: dados.telemetria.map(p => ""),
+                    datasets: [{ data: dados.telemetria.map(p => p.vel), borderColor: '#facc15', borderWidth: 2, pointRadius: 0, fill: true, backgroundColor: 'rgba(250,204,21,0.1)' }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { 
-                        x: { display: false },
-                        y: { grid: { color: '#222' }, ticks: { color: '#555' } }
-                    }
-                }
+                options: { plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: '#111' } } } }
             });
         }
 
-        // Funções de Zoom
-        window.abrirZoom = function(tipo) {
-            const modal = document.getElementById('modalZoom');
-            modal.classList.add('active');
-            
-            if(tipo === 'mapa') {
-                document.getElementById('containerMapaFull').classList.remove('hidden');
-                document.getElementById('containerGraficoFull').classList.add('hidden');
-                setTimeout(() => desenharMapa('fullMap', 18), 200);
+        window.abrirZoom = (tipo) => {
+            const m = document.getElementById('modalZoom');
+            m.classList.add('active');
+            document.getElementById('fullMap').classList.add('hidden');
+            document.getElementById('fullChartContainer').classList.add('hidden');
+
+            if (tipo === 'mapa') {
+                document.getElementById('fullMap').classList.remove('hidden');
+                document.getElementById('fullMap').innerHTML = ""; 
+                setTimeout(() => gerarMapa('fullMap', 18), 100);
             } else {
-                document.getElementById('containerGraficoFull').classList.remove('hidden');
-                document.getElementById('containerMapaFull').classList.add('hidden');
-                setTimeout(() => desenharGrafico('fullChartCanvas'), 200);
+                document.getElementById('fullChartContainer').classList.remove('hidden');
+                setTimeout(() => gerarGrafico('fullCanvas'), 100);
             }
-        }
+        };
 
-        window.fecharZoom = function() {
-            document.getElementById('modalZoom').classList.remove('active');
-        }
+        window.fecharZoom = () => document.getElementById('modalZoom').classList.remove('active');
 
-        carregarDados();
+        carregar();
     </script>
 </body>
 </html>
