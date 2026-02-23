@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ranking MX4</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #000; color: white; min-height: 100dvh; margin: 0; font-family: sans-serif; overflow-x: hidden; }
+        @media screen and (orientation: portrait) {
+            #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
+        }
+        .card-pista { background: linear-gradient(180deg, #111 0%, #000 100%); border: 1px solid #222; }
+        .row-ranking:nth-child(1) .posicao { color: #fbbf24; font-size: 1.5rem; } /* Ouro */
+        .row-ranking:nth-child(2) .posicao { color: #94a3b8; } /* Prata */
+        .row-ranking:nth-child(3) .posicao { color: #92400e; } /* Bronze */
+        .hide-scroll::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="p-4 hide-scroll">
+    <div id="app-container" class="max-w-5xl mx-auto flex flex-col h-full">
+        <div class="flex justify-between items-end mb-8">
+            <div>
+                <h2 class="text-4xl font-black italic uppercase tracking-tighter leading-none">Hall of <span class="text-yellow-400">Fame</span></h2>
+                <p class="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mt-1">Os mais rápidos de cada pista</p>
+            </div>
+            <button onclick="location.href='index.html'" class="bg-zinc-900 border border-zinc-800 text-zinc-400 px-6 py-2 rounded-xl font-bold uppercase text-[10px] hover:bg-zinc-800 transition-all">← Menu</button>
+        </div>
+
+        <div id="rankingContainer" class="space-y-10 pb-20">
+            <div class="text-center py-20 text-zinc-700 animate-pulse uppercase font-black italic">Sincronizando tempos...</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, query, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
+            authDomain: "mxlaptimer.firebaseapp.com",
+            projectId: "mxlaptimer",
+            storageBucket: "mxlaptimer.firebasestorage.app",
+            messagingSenderId: "790485374192",
+            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Escuta o Firebase
+        onSnapshot(collection(db, "treinos"), (snapshot) => {
+            const container = document.getElementById('rankingContainer');
+            if (snapshot.empty) {
+                container.innerHTML = '<div class="text-center py-20 text-zinc-800 font-black italic uppercase">Sem registros.</div>';
+                return;
+            }
+
+            const dadosBrutos = [];
+            snapshot.forEach(doc => dadosBrutos.push(doc.data()));
+
+            // 1. Agrupar por Pista e pegar a melhor volta de cada piloto
+            const pistas = {};
+
+            dadosBrutos.forEach(treino => {
+                if (!treino.voltas || treino.voltas.length === 0) return;
+
+                const nomePista = treino.pista;
+                const nomePiloto = treino.piloto;
+                const melhorVoltaSessao = [...treino.voltas].sort()[0];
+
+                if (!pistas[nomePista]) pistas[nomePista] = {};
+
+                // Se o piloto já tem tempo nessa pista, mantém apenas o melhor de todos os tempos dele
+                if (!pistas[nomePista][nomePiloto] || melhorVoltaSessao < pistas[nomePista][nomePiloto]) {
+                    pistas[nomePista][nomePiloto] = melhorVoltaSessao;
+                }
+            });
+
+            // 2. Gerar o HTML
+            container.innerHTML = '';
+
+            for (const [nomePista, pilotos] of Object.entries(pistas)) {
+                // Ordenar pilotos pelo tempo (string "01:22.30" ordena corretamente)
+                const rankingOrdenado = Object.entries(pilotos).sort((a, b) => a[1].localeCompare(b[1]));
+
+                let htmlPista = `
+                    <div class="card-pista rounded-[2.5rem] overflow-hidden shadow-2xl">
+                        <div class="bg-zinc-900/50 p-6 border-b border-zinc-800">
+                            <h3 class="text-2xl font-black italic uppercase text-yellow-400 tracking-tighter">${nomePista}</h3>
+                        </div>
+                        <div class="p-4 space-y-2">
+                `;
+
+                rankingOrdenado.forEach(([piloto, tempo], index) => {
+                    htmlPista += `
+                        <div class="row-ranking flex justify-between items-center p-4 bg-zinc-900/30 rounded-2xl border border-transparent hover:border-zinc-800 transition-all">
+                            <div class="flex items-center gap-4">
+                                <span class="posicao font-black italic w-6">${index + 1}º</span>
+                                <span class="text-lg font-bold uppercase italic tracking-tight text-zinc-200">${piloto}</span>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-[8px] text-zinc-600 font-bold uppercase italic">Best Lap</div>
+                                <div class="text-xl font-black font-mono text-white">${tempo}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                htmlPista += `</div>
