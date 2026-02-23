@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gravar</title>
+    <title>Gravar - MX4 Timer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { 
@@ -16,7 +16,6 @@
             font-family: sans-serif; 
         }
 
-        /* Container que força a rotação no telemóvel */
         #app-container {
             width: 100dvh;
             height: 100vw;
@@ -26,7 +25,7 @@
             transform: translate(-50%, -50%) rotate(90deg);
             display: flex;
             flex-direction: column;
-            padding: 20px;
+            padding: 3vh 5vh;
             box-sizing: border-box;
         }
 
@@ -38,36 +37,41 @@
             }
         }
 
-        /* O segredo: flex-1 faz este bloco ocupar o centro todo */
         .centro-cronometro {
             flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 0; /* Importante para flexbox não quebrar */
+            pointer-events: none; /* Deixa cliques passarem através do texto */
         }
 
         .time-sessao { 
-            /* Tamanho reduzido para 34vw para ser seguro em todos os ecrãs */
-            font-size: 40vw; 
+            font-size: 45vw; 
             font-weight: 900; 
             font-family: 'Courier New', Courier, monospace; 
             color: #fff; 
             line-height: 1;
-            letter-spacing: -2px;
+            letter-spacing: -5px;
+        }
+
+        /* Garante que o botão responda ao toque */
+        #btnAcao {
+            pointer-events: auto !important;
+            cursor: pointer;
+            z-index: 100;
         }
     </style>
 </head>
 <body>
     <div id="app-container">
         
-        <div class="flex justify-between items-start w-full">
+        <div class="w-full flex justify-between items-start">
             <div>
                 <h1 id="pistaNome" class="text-xl font-black italic uppercase text-yellow-500">---</h1>
                 <p id="pilotoNome" class="text-[10px] font-bold uppercase text-zinc-500">PILOTO</p>
             </div>
             <div class="text-right">
-                <div id="statusGPS" class="text-[10px] font-bold uppercase text-red-500 tracking-tighter">Aguardando GPS</div>
+                <div id="statusGPS" class="text-[10px] font-bold uppercase text-red-500">BUSCA GPS</div>
                 <div id="infoSetor" class="text-[9px] font-black text-zinc-400 mt-1 uppercase italic bg-zinc-900 px-3 py-1 rounded-full">STANDBY</div>
             </div>
         </div>
@@ -76,11 +80,11 @@
             <div id="displayTempo" class="time-sessao">00:00</div>
         </div>
 
-        <div class="flex justify-between items-end w-full">
-            <div class="flex gap-8">
+        <div class="w-full flex justify-between items-end">
+            <div class="flex gap-10">
                 <div>
                     <p class="text-[10px] text-zinc-500 font-bold uppercase">Voltas</p>
-                    <p id="voltas" class="text-5xl font-black italic">0</p>
+                    <p id="voltas" class="text-5xl font-black italic text-white">0</p>
                 </div>
                 <div>
                     <p class="text-[10px] text-zinc-500 font-bold uppercase">Última</p>
@@ -88,11 +92,10 @@
                 </div>
             </div>
 
-            <button id="btnAcao" onclick="toggleGravar()" class="bg-white text-black h-20 px-12 rounded-2xl font-black uppercase italic text-2xl shadow-xl active:scale-95 transition-all">
+            <button id="btnAcao" onclick="toggleGravar()" class="bg-white text-black h-20 px-14 rounded-2xl font-black uppercase italic text-3xl shadow-2xl active:scale-95 transition-all">
                 Iniciar
             </button>
         </div>
-
     </div>
 
     <script type="module">
@@ -128,7 +131,7 @@
             document.getElementById('pilotoNome').innerText = pilotoAtivo || "Piloto";
         }
 
-        // Funções de controlo
+        // Função vinculada diretamente ao objeto window para o onclick funcionar sempre
         window.toggleGravar = function() {
             if (!gravando) {
                 iniciar();
@@ -141,13 +144,16 @@
             gravando = true;
             const btn = document.getElementById('btnAcao');
             btn.innerText = "PARAR";
-            btn.classList.replace('bg-white', 'bg-red-600');
-            btn.classList.add('text-white');
+            btn.style.backgroundColor = "#dc2626"; // Vermelho
+            btn.style.color = "white";
 
-            watchID = navigator.geolocation.watchPosition(processarPosicao, null, {
+            watchID = navigator.geolocation.watchPosition(processarPosicao, (err) => {
+                console.error(err);
+                document.getElementById('statusGPS').innerText = "ERRO GPS";
+            }, {
                 enableHighAccuracy: true,
                 maximumAge: 0,
-                timeout: 5000
+                timeout: 10000
             });
 
             atualizarCronometro();
@@ -155,8 +161,8 @@
 
         function processarPosicao(pos) {
             const { latitude: lat, longitude: lng } = pos.coords;
-            document.getElementById('statusGPS').innerText = "GPS ATIVO";
-            document.getElementById('statusGPS').classList.replace('text-red-500', 'text-green-500');
+            document.getElementById('statusGPS').innerText = "GPS OK";
+            document.getElementById('statusGPS').className = "text-[10px] font-bold uppercase text-green-500";
 
             if (gravando) {
                 const pontosPista = pistaAtiva.checkpoints || [{ lat: pistaAtiva.lat, lng: pistaAtiva.lng, tipo: "chegada" }];
@@ -164,7 +170,7 @@
                 const dist = calcularDistancia(lat, lng, alvo.lat, alvo.lng);
                 
                 const nomesSetores = ["S4", "S1", "S2", "S3"];
-                document.getElementById('infoSetor').innerText = `NO SETOR: ${nomesSetores[pontoAtual]}`;
+                document.getElementById('infoSetor').innerText = `${nomesSetores[pontoAtual]}`;
 
                 if (dist < 0.025) { 
                     const agora = Date.now();
@@ -205,4 +211,42 @@
 
         async function parar() {
             gravando = false;
+            navigator.geolocation.clearWatch(watchID);
+            document.getElementById('btnAcao').innerText = "...";
+            try {
+                await addDoc(collection(db, "treinos"), {
+                    piloto: pilotoAtivo,
+                    pista: pistaAtiva.nome,
+                    voltasTotal: voltasCount,
+                    voltas: temposVoltas,
+                    data: serverTimestamp()
+                });
+                window.location.href = 'index.html';
+            } catch (e) {
+                console.error(e);
+                window.location.href = 'index.html';
+            }
+        }
 
+        function calcularDistancia(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        function formatarTempoTela(ms) {
+            const m = Math.floor(ms / 60000);
+            const s = Math.floor((ms % 60000) / 1000);
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function formatarTempoBD(ms) {
+            const m = Math.floor(ms / 60000);
+            const s = ((ms % 60000) / 1000).toFixed(2);
+            return `${m}:${s.padStart(5, '0')}`;
+        }
+    </script>
+</body>
+</html>
