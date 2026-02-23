@@ -3,60 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MX Timer - Gravar</title>
+    <title>Gravar - MX4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #000; height: 100dvh; margin: 0; overflow: hidden; color: white; font-family: sans-serif; }
-        
-        #app-container {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            height: 100dvh;
-            padding: 15px;
-            box-sizing: border-box;
-        }
-
+        body { background-color: #000; height: 100dvh; margin: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; color: white; }
         @media screen and (orientation: portrait) {
-            #app-container { 
-                transform: rotate(90deg); transform-origin: center; 
-                width: 100dvh; height: 100vw; 
-                position: absolute; top: 50%; left: 50%; translate: -50% -50%; 
-            }
+            #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
         }
-
-        .cronometro-total { 
-            font-size: 24vw; 
-            font-weight: 900; 
-            font-family: monospace; 
-            line-height: 0.8;
-        }
-
-        .numero-voltas {
-            font-size: 12vh;
-            font-weight: 900;
-            color: #fbbf24;
-            line-height: 1;
-        }
+        .time-total { font-size: 20vw; font-weight: 900; font-family: monospace; line-height: 0.8; color: #fff; }
     </style>
 </head>
 <body>
-
-    <div id="app-container">
+    <div id="app-container" class="w-full h-full flex flex-col items-center justify-between p-4">
         
-        <div class="w-full flex justify-between items-start">
-            <button onclick="window.location.href='index.html'" class="bg-zinc-900 text-zinc-400 px-6 py-3 rounded-xl font-bold uppercase text-xs border border-zinc-800">
-                ← Voltar
-            </button>
-            
-            <div class="text-right">
-                <div class="text-zinc-500 font-bold uppercase text-[10px] italic">Voltas</div>
-                <div id="contagemVoltas" class="numero-voltas">0</div>
+        <div class="w-full flex justify-between items-center">
+            <button onclick="encerrarSessao()" class="text-zinc-600 font-bold uppercase text-[10px] border border-zinc-800 px-4 py-2 rounded-xl italic hover:bg-zinc-900">← Voltar</button>
+            <div id="infoSessao" class="text-zinc-500 font-black italic text-[10px] uppercase tracking-tighter text-right leading-none">
+                <span id="txtPista">...</span><br>
+                <span id="txtPiloto" class="text-yellow-400">...</span>
             </div>
         </div>
 
         <div class="text-center">
-            <div id="timerTotal" class="cronometro-total text-white">00:00</div>
-            <div class="text-zinc-600 font-bold uppercase text-xs tracking-[0.5em] mt-2">Tempo Total</div>
+            <div class="text-zinc-500 font-black italic text-lg mb-1 uppercase tracking-tighter">Lap Time</div>
+            <div id="timerVolta" class="time-total">00:00.00</div>
+            <div id="ultimaVolta" class="text-zinc-500 font-bold italic text-xl mt-2 uppercase">Última: --:--.--</div>
         </div>
+
+        <div class="w-full grid grid-cols-3 gap-4 items-center mb-2">
+            <div class="bg-zinc-950 p-3 rounded-2xl border border-zinc-900 text-center">
+                <div class="text-[9px] text-zinc-600 font-bold uppercase italic leading-none mb-1">Sessão</div>
+                <div id="timerTotal" class="text-xl font-bold font-mono text-white">00:00</div>
+            </div>
+
+            <button id="btnAcao" onclick="alternarSessao()" class="bg-green-600 text-white
