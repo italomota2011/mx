@@ -6,29 +6,70 @@
     <title>Mapear Pista</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; height: 100dvh; display: flex; align-items: center; justify-content: center; }
-        .btn-map { background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%); border-bottom: 4px solid #1e3a8a; }
+        body { background: #000; color: #fff; font-family: sans-serif; min-height: 100dvh; display: flex; align-items: center; justify-content: center; margin: 0; }
+        .btn-step { transition: all 0.3s ease; position: relative; overflow: hidden; }
+        .btn-step.done { border-color: #22c55e; background: rgba(34, 197, 94, 0.1); }
+        .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; }
     </style>
 </head>
-<body class="p-6">
-    <div class="w-full max-w-md space-y-6 text-center">
-        <h1 class="text-2xl font-black italic uppercase tracking-tighter">Mapear <span class="text-blue-500">Pista</span></h1>
+<body class="p-4">
+    <div class="w-full max-w-md space-y-4">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-black italic uppercase tracking-tighter text-yellow-500">Mapear <span class="text-white">Sectores</span></h1>
+            <p id="statusGPS" class="text-[10px] font-bold uppercase text-zinc-500 mt-1 italic">Aguardando GPS...</p>
+        </div>
         
-        <input type="text" id="nomePista" placeholder="NOME DA PISTA (Ex: CT MX4)" class="w-full p-4 rounded-2xl bg-zinc-900 border border-zinc-800 text-center font-bold uppercase outline-none focus:border-blue-500">
+        <input type="text" id="nomePista" placeholder="NOME DA PISTA" class="w-full p-4 rounded-2xl bg-zinc-900 border border-zinc-800 text-center font-bold uppercase outline-none focus:border-yellow-500 text-white mb-2">
         
-        <div id="statusGPS" class="text-[10px] font-bold uppercase text-zinc-500 italic">Aguardando sinal de GPS...</div>
+        <p class="text-[9px] text-zinc-500 font-bold uppercase text-center mb-4 italic">Marca os 4 pontos de divisão da pista</p>
 
-        <button id="btnMapear" onclick="capturarPonto()" class="btn-map w-full py-6 rounded-3xl font-black uppercase italic text-xl active:scale-95 transition-all">Marcar Linha de Chegada</button>
-        
-        <a href="index.html" class="block text-zinc-600 font-bold uppercase text-xs mt-4 italic">← Voltar ao Menu</a>
+        <div class="grid grid-cols-1 gap-3">
+            <button id="btn-p1" onclick="marcarPonto(1)" class="btn-step w-full p-4 rounded-2xl border border-zinc-800 bg-zinc-900/50 flex justify-between items-center group">
+                <div class="text-left">
+                    <span class="block font-black italic uppercase text-sm text-yellow-500">Ponto 1 (Largada/Chegada)</span>
+                    <span class="block text-[8px] text-zinc-500 uppercase font-bold">Início do S1 / Fim do S4</span>
+                </div>
+                <span id="label-p1" class="text-[10px] font-bold text-zinc-600">MARCAR</span>
+            </button>
+
+            <button id="btn-p2" onclick="marcarPonto(2)" class="btn-step w-full p-4 rounded-2xl border border-zinc-800 bg-zinc-900/50 flex justify-between items-center">
+                <div class="text-left">
+                    <span class="block font-black italic uppercase text-sm">Ponto 2</span>
+                    <span class="block text-[8px] text-zinc-500 uppercase font-bold">Fim do S1 / Início do S2</span>
+                </div>
+                <span id="label-p2" class="text-[10px] font-bold text-zinc-600">MARCAR</span>
+            </button>
+
+            <button id="btn-p3" onclick="marcarPonto(3)" class="btn-step w-full p-4 rounded-2xl border border-zinc-800 bg-zinc-900/50 flex justify-between items-center">
+                <div class="text-left">
+                    <span class="block font-black italic uppercase text-sm">Ponto 3</span>
+                    <span class="block text-[8px] text-zinc-500 uppercase font-bold">Fim do S2 / Início do S3</span>
+                </div>
+                <span id="label-p3" class="text-[10px] font-bold text-zinc-600">MARCAR</span>
+            </button>
+
+            <button id="btn-p4" onclick="marcarPonto(4)" class="btn-step w-full p-4 rounded-2xl border border-zinc-800 bg-zinc-900/50 flex justify-between items-center">
+                <div class="text-left">
+                    <span class="block font-black italic uppercase text-sm">Ponto 4</span>
+                    <span class="block text-[8px] text-zinc-500 uppercase font-bold">Fim do S3 / Início do S4</span>
+                </div>
+                <span id="label-p4" class="text-[10px] font-bold text-zinc-600">MARCAR</span>
+            </button>
+        </div>
+
+        <div class="pt-6 flex gap-2">
+            <button onclick="location.href='index.html'" class="flex-1 bg-zinc-900 text-zinc-400 p-4 rounded-2xl font-bold uppercase text-xs">Sair</button>
+            <button id="btnSalvar" onclick="salvarPista()" class="flex-[2] bg-white text-black p-4 rounded-2xl font-black uppercase italic shadow-lg active:scale-95 transition-all">Salvar Pista</button>
+        </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+        // CONFIGURAÇÃO DO TEU FIREBASE
         const firebaseConfig = {
-            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
+            apiKey: "AIzaSyBw-p_Gk...", 
             authDomain: "mxlaptimer.firebaseapp.com",
             projectId: "mxlaptimer",
             storageBucket: "mxlaptimer.firebasestorage.app",
@@ -38,32 +79,62 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        enableIndexedDbPersistence(db).catch(() => console.log("Offline Ativo"));
 
-        let lat, lng;
+        let coordsAtuais = { lat: null, lng: null };
+        let pontosMapeados = { p1: null, p2: null, p3: null, p4: null };
 
         navigator.geolocation.watchPosition((pos) => {
-            lat = pos.coords.latitude;
-            lng = pos.coords.longitude;
-            document.getElementById('statusGPS').innerText = `GPS OK: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            coordsAtuais.lat = pos.coords.latitude;
+            coordsAtuais.lng = pos.coords.longitude;
+            document.getElementById('statusGPS').innerText = `GPS OK (Precisão: ${pos.coords.accuracy.toFixed(1)}m)`;
             document.getElementById('statusGPS').classList.replace('text-zinc-500', 'text-green-500');
         }, null, { enableHighAccuracy: true });
 
-        window.capturarPonto = async function() {
+        window.marcarPonto = function(num) {
+            if (!coordsAtuais.lat) return alert("Aguardando sinal de GPS...");
+            
+            pontosMapeados[`p${num}`] = { lat: coordsAtuais.lat, lng: coordsAtuais.lng };
+            
+            const btn = document.getElementById(`btn-p${num}`);
+            const label = document.getElementById(`label-p${num}`);
+            
+            btn.classList.add('done');
+            label.innerText = "CAPTURADO";
+            label.classList.replace('text-zinc-600', 'text-green-500');
+        };
+
+        window.salvarPista = async function() {
             const nome = document.getElementById('nomePista').value;
-            if(!nome) return alert("Digita o nome da pista!");
-            if(!lat) return alert("Aguardando sinal de GPS...");
+            if (!nome) return alert("Insira o nome da pista!");
+            if (!pontosMapeados.p1) return alert("O Ponto 1 (Largada) é obrigatório!");
+
+            const btnSalvar = document.getElementById('btnSalvar');
+            btnSalvar.disabled = true;
+            btnSalvar.innerText = "A GUARDAR...";
+
+            // Organiza os checkpoints para o gravar.html
+            // O gravar.html percorre esta lista na ordem
+            const checkpoints = [
+                { ...pontosMapeados.p1, tipo: "chegada" } // Trigger de Volta/Início S1
+            ];
+            
+            if (pontosMapeados.p2) checkpoints.push({ ...pontosMapeados.p2, tipo: "s1" }); // Fim S1 / Início S2
+            if (pontosMapeados.p3) checkpoints.push({ ...pontosMapeados.p3, tipo: "s2" }); // Fim S2 / Início S3
+            if (pontosMapeados.p4) checkpoints.push({ ...pontosMapeados.p4, tipo: "s3" }); // Fim S3 / Início S4
 
             try {
-                await addDoc(collection(db, "pistas"), { nome, lat, lng });
-                alert("Pista guardada com sucesso!");
-                location.href = 'index.html';
+                await addDoc(collection(db, "pistas"), {
+                    nome: nome.toUpperCase(),
+                    lat: pontosMapeados.p1.lat,
+                    lng: pontosMapeados.p1.lng,
+                    checkpoints: checkpoints
+                });
+                window.location.href = 'index.html';
             } catch (e) {
-                alert("Guardado localmente (Offline).");
-                location.href = 'index.html';
+                alert("Erro ao guardar: " + e.message);
+                btnSalvar.disabled = false;
             }
         };
     </script>
 </body>
 </html>
-
