@@ -10,19 +10,11 @@
         @media screen and (orientation: portrait) {
             #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
         }
-        .time-sessao { 
-            font-size: 35vw; 
-            font-weight: 900; 
-            font-family: monospace; 
-            line-height: 1; 
-            color: #fff;
-            letter-spacing: -2px;
-        }
+        .time-sessao { font-size: 35vw; font-weight: 900; font-family: monospace; line-height: 1; color: #fff; letter-spacing: -2px; }
     </style>
 </head>
 <body>
     <div id="app-container" class="w-full h-full flex flex-col items-center justify-between p-4">
-        
         <div class="w-full flex justify-between items-center">
             <button onclick="window.encerrarSessao()" class="text-zinc-600 font-bold uppercase text-[10px] border border-zinc-800 px-4 py-2 rounded-xl italic">← Voltar</button>
             <div class="text-zinc-500 font-black italic text-[10px] uppercase tracking-tighter text-right leading-none">
@@ -40,14 +32,10 @@
                 <div class="text-[9px] text-zinc-600 font-bold uppercase italic mb-1">Voltas</div>
                 <div id="contagemVoltas" class="text-3xl font-black italic text-white">0</div>
             </div>
-
-            <button id="btnAcao" onclick="window.alternarSessao()" class="bg-green-600 text-white font-black py-6 rounded-3xl uppercase text-xl border-b-4 border-green-900 active:scale-95 transition-all">
-                Iniciar
-            </button>
-
+            <button id="btnAcao" onclick="window.alternarSessao()" class="bg-green-600 text-white font-black py-6 rounded-3xl uppercase text-xl border-b-4 border-green-900 active:scale-95 transition-all">Iniciar</button>
             <div class="bg-zinc-950 p-4 rounded-3xl border border-zinc-900 text-center">
                 <div class="text-[9px] text-zinc-600 font-bold uppercase italic mb-1 leading-tight">Status</div>
-                <div id="statusTXT" class="text-[10px] font-black italic text-zinc-500 uppercase">Pronto</div>
+                <div id="statusTXT" class="text-[10px] font-black italic text-zinc-500 uppercase italic">Pronto</div>
             </div>
         </div>
     </div>
@@ -68,11 +56,8 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        let gravando = false;
-        let tempoInicialSessao, tempoReferenciaVolta, intervalo, watchID;
-        let voltasCount = 0;
-        let temposVoltas = [];
-        
+        let gravando = false, tempoInicialSessao, tempoReferenciaVolta, intervalo, watchID;
+        let voltasCount = 0, temposVoltas = [], rastroGPS = [];
         const pistaAtiva = JSON.parse(localStorage.getItem('pistaAtiva'));
         const pilotoAtivo = sessionStorage.getItem('pilotoAtual') || "Piloto";
 
@@ -81,59 +66,52 @@
             document.getElementById('txtPiloto').innerText = pilotoAtivo;
         }
 
-        // Tornar as funções globais para o onclick funcionar
         window.alternarSessao = function() {
-            const btn = document.getElementById('btnAcao');
-            const status = document.getElementById('statusTXT');
-
             if (!gravando) {
                 if (!pistaAtiva) return alert("Pista não selecionada!");
-                
                 gravando = true;
                 const agora = Date.now();
-                tempoInicialSessao = agora;
-                tempoReferenciaVolta = agora;
-                
-                intervalo = setInterval(atualizarCronometro, 10); 
-                iniciarMonitoramentoGPS();
-                
-                btn.innerText = "Parar";
-                btn.classList.replace('bg-green-600', 'bg-red-600');
-                btn.classList.replace('border-green-900', 'border-red-900');
-                status.innerText = "Gravando";
-            } else {
-                pararESalvar();
-            }
+                tempoInicialSessao = agora; tempoReferenciaVolta = agora;
+                intervalo = setInterval(() => {
+                    const diff = Date.now() - tempoInicialSessao;
+                    document.getElementById('timerTotal').innerText = formatar(diff);
+                }, 10);
+                iniciarGPS();
+                document.getElementById('btnAcao').innerText = "Parar";
+                document.getElementById('btnAcao').className = "bg-red-600 text-white font-black py-6 rounded-3xl uppercase text-xl border-b-4 border-red-900";
+            } else { pararESalvar(); }
         };
 
-        window.encerrarSessao = function() {
-            if(confirm("Sair do treino?")) window.location.href = 'index.html';
-        };
-
-        function formatarTempo(ms) {
+        function formatar(ms) {
             const m = String(Math.floor(ms / 60000)).padStart(2, '0');
             const s = String(Math.floor((ms % 60000) / 1000)).padStart(2, '0');
             const c = String(Math.floor((ms % 1000) / 10)).padStart(2, '0');
             return `${m}:${s}.${c}`;
         }
 
-        function atualizarCronometro() {
-            const agora = Date.now();
-            document.getElementById('timerTotal').innerText = formatarTempo(agora - tempoInicialSessao);
-        }
-
-        function iniciarMonitoramentoGPS() {
+        function iniciarGPS() {
             watchID = navigator.geolocation.watchPosition((pos) => {
                 const agora = Date.now();
-                const dist = calcularDistancia(pos.coords.latitude, pos.coords.longitude, pistaAtiva.lat, pistaAtiva.lng);
+                // GUARDAR TELEMETRIA PARA O GRÁFICO
+                rastroGPS.push({
+                    lat: pos.coords.latitude, lng: pos.coords.longitude,
+                    vel: pos.coords.speed ? (pos.coords.speed * 3.6).toFixed(1) : 0,
+                    ts: agora - tempoInicialSessao
+                });
 
-                if (dist < 0.025) { 
-                    const duracaoVoltaMS = agora - tempoReferenciaVolta;
-                    if (duracaoVoltaMS > 15000) { 
-                        temposVoltas.push(formatarTempo(duracaoVoltaMS));
+                const R = 6371;
+                const dLat = (pos.coords.latitude - pistaAtiva.lat) * Math.PI / 180;
+                const dLon = (pos.coords.longitude - pistaAtiva.lng) * Math.PI / 180;
+                const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(pos.coords.latitude * Math.PI / 180) * Math.cos(pistaAtiva.lat * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+                const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+                if (dist < 0.025) {
+                    const duracao = agora - tempoReferenciaVolta;
+                    if (duracao > 15000) {
+                        temposVoltas.push(formatar(duracao));
                         voltasCount++;
                         document.getElementById('contagemVoltas').innerText = voltasCount;
-                        tempoReferenciaVolta = agora; // Reinicia para a próxima volta ser independente
+                        tempoReferenciaVolta = agora;
                     }
                 }
             }, null, { enableHighAccuracy: true });
@@ -142,35 +120,18 @@
         async function pararESalvar() {
             clearInterval(intervalo);
             navigator.geolocation.clearWatch(watchID);
-            
-            const btn = document.getElementById('btnAcao');
-            btn.disabled = true;
-            btn.innerText = "Salvando...";
-
             try {
                 await addDoc(collection(db, "treinos"), {
-                    piloto: pilotoAtivo,
-                    pista: pistaAtiva.nome,
-                    voltas: temposVoltas,
+                    piloto: pilotoAtivo, pista: pistaAtiva.nome,
+                    voltas: temposVoltas, telemetria: rastroGPS,
                     totalSessao: document.getElementById('timerTotal').innerText,
                     data: serverTimestamp()
                 });
-                window.location.href = 'index.html';
-            } catch (e) {
-                alert("Erro ao salvar!");
-                btn.disabled = false;
-                btn.innerText = "Parar";
-            }
+                location.href = 'index.html';
+            } catch (e) { location.href = 'index.html'; }
         }
 
-        function calcularDistancia(lat1, lon1, lat2, lon2) {
-            const R = 6371;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
+        window.encerrarSessao = () => { if(confirm("Sair?")) location.href = 'index.html'; };
     </script>
 </body>
 </html>
-
