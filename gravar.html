@@ -41,4 +41,86 @@
                 <div id="contagemVoltas" class="text-3xl font-black italic text-white">0</div>
             </div>
 
-            <button id
+            <button id="btnAcao" onclick="alternarSessao()" class="bg-green-600 text-white font-black py-6 rounded-3xl uppercase text-xl border-b-4 border-green-900 active:scale-95 transition-all">
+                Iniciar
+            </button>
+
+            <div class="bg-zinc-950 p-4 rounded-3xl border border-zinc-900 text-center">
+                <div class="text-[9px] text-zinc-600 font-bold uppercase italic mb-1 leading-tight">Status</div>
+                <div id="statusTXT" class="text-[10px] font-black italic text-zinc-500 uppercase">Pronto</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
+            authDomain: "mxlaptimer.firebaseapp.com",
+            projectId: "mxlaptimer",
+            storageBucket: "mxlaptimer.firebasestorage.app",
+            messagingSenderId: "790485374192",
+            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let gravando = false;
+        let tempoInicialSessao; 
+        let tempoReferenciaVolta; // Referência interna para calcular a volta individual
+        let intervalo, watchID;
+        let voltasCount = 0;
+        let temposVoltas = [];
+        let rastroTelemetria = []; // Coleta de pontos para o gráfico/mapa
+        
+        const pistaAtiva = JSON.parse(localStorage.getItem('pistaAtiva'));
+        const pilotoAtivo = sessionStorage.getItem('pilotoAtual') || "Piloto";
+
+        if(pistaAtiva) {
+            document.getElementById('txtPista').innerText = pistaAtiva.nome;
+            document.getElementById('txtPiloto').innerText = pilotoAtivo;
+        }
+
+        window.alternarSessao = function() {
+            const btn = document.getElementById('btnAcao');
+            const status = document.getElementById('statusTXT');
+
+            if (!gravando) {
+                if (!pistaAtiva) return alert("Erro: Pista não encontrada.");
+                
+                gravando = true;
+                const agora = Date.now();
+                tempoInicialSessao = agora;
+                tempoReferenciaVolta = agora; // A primeira volta começa agora
+                
+                intervalo = setInterval(atualizarCronometro, 10); 
+                iniciarMonitoramentoGPS();
+                
+                btn.innerText = "Parar";
+                btn.className = "bg-red-600 text-white font-black py-6 rounded-3xl uppercase text-xl border-b-4 border-red-900 active:scale-95 transition-all";
+                status.innerText = "Gravando";
+                status.classList.replace('text-zinc-500', 'text-green-500');
+            } else {
+                pararESalvar();
+            }
+        };
+
+        function formatarTempo(ms) {
+            const m = String(Math.floor(ms / 60000)).padStart(2, '0');
+            const s = String(Math.floor((ms % 60000) / 1000)).padStart(2, '0');
+            const c = String(Math.floor((ms % 1000) / 10)).padStart(2, '0');
+            return `${m}:${s}.${c}`;
+        }
+
+        function atualizarCronometro() {
+            const agora = Date.now();
+            const diffSessao = agora - tempoInicialSessao;
+            document.getElementById('timerTotal').innerText = formatarTempo(diffSessao);
+        }
+
+        function iniciarMonitoramentoGPS() {
+            if ("geolocation" in navigator) {
+                watchID = navigator.geolocation.watchPosition((
