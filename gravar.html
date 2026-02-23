@@ -12,31 +12,28 @@
             background-color: #000; 
             height: 100dvh; 
             margin: 0; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            color: white; 
+            color: white;
         }
 
-        /* ROTAÇÃO FORÇADA TRAVADA */
+        /* ROTAÇÃO FORÇADA - CORRIGIDA PARA NÃO SUMIR */
         #app-container { 
             transform: rotate(90deg); 
-            transform-origin: center; 
+            transform-origin: center center; 
             width: 100dvh; 
             height: 100vw; 
-            position: absolute; 
+            position: fixed; /* Fixed evita que o container fuja da tela */
             top: 50%; 
             left: 50%; 
-            translate: -50% -50%; 
+            margin-left: -50dvh; /* Centraliza perfeitamente */
+            margin-top: -50vw;
             display: flex; 
             flex-direction: column; 
             justify-content: space-between; 
-            padding: 1.5rem;
-            pointer-events: none; /* Cliques passam pelo fundo e chegam nos botões */
+            padding: 2rem;
         }
 
         .time-sessao { 
-            font-size: 45vw; 
+            font-size: 40vw; 
             font-weight: 900; 
             font-family: monospace; 
             line-height: 1; 
@@ -44,18 +41,81 @@
             letter-spacing: -10px;
         }
 
-        /* ÁREA DE CLIQUE REAL */
+        /* Força os botões a aceitarem o toque na rotação */
         button, #btnAcao {
-            pointer-events: auto !important; /* Reativa o clique nos botões */
-            position: relative;
-            z-index: 9999;
-            cursor: pointer;
+            z-index: 9999 !important;
             touch-action: manipulation;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
     <div id="app-container">
         <div class="w-full flex justify-between items-center">
-            <button id="btnVoltar" class="text-zinc-400 font-bold uppercase text-[12px] border border-zinc-800 px-6 py-3 rounded-xl italic bg-zinc-900">
-                ← Vol
+            <button id="btnVoltar" class="text-zinc-600 font-bold uppercase text-[12px] border border-zinc-800 px-6 py-3 rounded-xl italic">← Voltar</button>
+            <div class="text-zinc-500 font-black italic text-[10px] uppercase tracking-tighter text-right leading-none">
+                <span id="txtPista">...</span><br>
+                <span id="txtPiloto" class="text-yellow-400">...</span>
+            </div>
+        </div>
+
+        <div class="flex-1 flex items-center justify-center">
+            <div id="timerTotal" class="time-sessao">00:00</div>
+        </div>
+
+        <div class="w-full grid grid-cols-3 gap-6 items-center mb-4">
+            <div class="bg-zinc-950 p-4 rounded-3xl border border-zinc-900 text-center">
+                <div class="text-[10px] text-zinc-600 font-bold uppercase italic mb-1">Voltas</div>
+                <div id="contagemVoltas" class="text-4xl font-black italic text-white">0</div>
+            </div>
+
+            <button id="btnAcao" class="bg-green-600 text-white font-black py-8 rounded-3xl uppercase text-2xl border-b-4 border-green-900 active:scale-95 transition-all">
+                Iniciar
+            </button>
+
+            <div class="bg-zinc-950 p-4 rounded-3xl border border-zinc-900 text-center">
+                <div class="text-[10px] text-zinc-600 font-bold uppercase italic mb-1 leading-tight">Status</div>
+                <div id="statusTXT" class="text-[11px] font-black italic text-zinc-500 uppercase">Pronto</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
+            authDomain: "mxlaptimer.firebaseapp.com",
+            projectId: "mxlaptimer",
+            storageBucket: "mxlaptimer.firebasestorage.app",
+            messagingSenderId: "790485374192",
+            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let gravando = false;
+        let tempoInicialSessao, intervalo, watchID;
+        let voltasCount = 0;
+        let ultimaMarcacaoVolta = 0;
+        let temposVoltas = [];
+        let rastroTelemetria = []; 
+        let marcasDeVolta = []; 
+        let lastTriggerTime = 0;
+        const TRIGGER_LOCKOUT = 10000; 
+
+        const pistaAtiva = JSON.parse(localStorage.getItem('pistaAtiva'));
+        const pilotoAtivo = sessionStorage.getItem('pilotoAtual') || "Piloto";
+
+        if(pistaAtiva) {
+            document.getElementById('txtPista').innerText = pistaAtiva.nome;
+            document.getElementById('txtPiloto').innerText = pilotoAtivo;
+        }
+
+        // LÓGICA DE CLIQUE CORRIGIDA
+        const btnAcao = document.getElementById('btnAcao');
+        const btnVoltar = document.getElementById('btnVoltar');
+
+        btnAcao.addEventListener
