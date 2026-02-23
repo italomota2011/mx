@@ -21,7 +21,7 @@
         .centro-cronometro { flex: 1; display: flex; align-items: center; justify-content: center; pointer-events: none; }
         
         .time-sessao { 
-            font-size: 38vw; /* Aumentado levemente */
+            font-size: 45vw; /* Aumentado levemente */
             font-weight: 900; font-family: 'Courier New', Courier, monospace; 
             color: #fff; line-height: 1; letter-spacing: -5px;
         }
@@ -91,7 +91,7 @@
         
         // Bloqueio de 10 segundos para evitar falsos positivos no mesmo ponto
         let lastTriggerTime = 0;
-        const TRIGGER_LOCKOUT = 10000; 
+        const TRIGGER_LOCKOUT = 20000; 
 
         const pistaAtiva = JSON.parse(localStorage.getItem('pistaAtiva'));
         const pilotoAtivo = sessionStorage.getItem('pilotoAtual');
@@ -216,3 +216,4 @@
     </script>
 </body>
 </html>
+
