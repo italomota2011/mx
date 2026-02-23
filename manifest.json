@@ -1,6 +1,6 @@
 {
   "name": "MX Lap Timer",
-  "short_name": "MXTimer",
+  "short_name": "MX Lap Timer",
   "description": "Cronómetro de Motocross via GPS",
   "start_url": "./index.html",
   "display": "standalone",
