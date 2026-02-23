@@ -5,14 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MX Lap Timer</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="manifest" href="manifest.json">
+    
 <meta name="theme-color" content="#ea580c">
 
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="MXTimer">
-    <meta name="theme-color" content="#ea580c">
+    <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => console.log("Service Worker Registrado!"));
+  }
+</script>
+    <meta name="theme-color" content="#000000">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #000; height: 100dvh; margin: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; font-family: sans-serif; }
@@ -117,6 +123,7 @@
 </script>
 </body>
 </html>
+
 
 
 
