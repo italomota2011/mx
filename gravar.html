@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gravar</title>
+    <title>Gravar - MX4 Timer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { 
@@ -27,7 +27,7 @@
             flex-direction: column;
             justify-content: space-between;
             align-items: center;
-            padding: 3vh; /* Margem interna de segurança */
+            padding: 2vh 5vh;
             box-sizing: border-box;
         }
 
@@ -39,67 +39,28 @@
             }
         }
 
-        /* AJUSTE FINAL DO TAMANHO: Reduzi para 32vw para garantir que os 5 caracteres (00:00) caibam */
+        
         .time-sessao { 
-            font-size: 32vw; 
+            font-size: 40vw; 
             font-weight: 900; 
             font-family: 'Courier New', Courier, monospace; 
             line-height: 1; 
             color: #fff; 
             text-align: center;
-            letter-spacing: -2px;
+            letter-spacing: -5px;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-grow: 1; /* Ocupa o espaço central disponível */
+            flex: 1; /* Ocupa todo o centro */
+            width: 100%;
+            pointer-events: none; /* Garante que o toque passe pelo texto se necessário */
+        }
+
+        #btnAcao {
+            position: relative;
+            z-index: 50; /* Garante que o botão esteja acima de tudo */
         }
     </style>
 </head>
 <body>
     <div id="app-container">
-        
-        <div class="w-full flex justify-between items-start border-b border-zinc-900 pb-2">
-            <div>
-                <h1 id="pistaNome" class="text-lg font-black italic uppercase text-yellow-500 leading-none">---</h1>
-                <p id="pilotoNome" class="text-[9px] font-bold uppercase text-zinc-600">Piloto</p>
-            </div>
-            <div class="text-right">
-                <div id="statusGPS" class="text-[9px] font-bold uppercase text-red-500">Busca GPS</div>
-                <div id="infoSetor" class="text-[8px] font-black text-zinc-500 mt-1 uppercase italic bg-zinc-900 px-2 py-0.5 rounded">Sessão</div>
-            </div>
-        </div>
-
-        <div class="flex-grow flex items-center justify-center w-full overflow-hidden">
-            <div id="displayTempo" class="time-sessao">00:00</div>
-        </div>
-
-        <div class="w-full flex justify-between items-center border-t border-zinc-900 pt-2">
-            <div class="flex gap-10">
-                <div>
-                    <p class="text-[9px] text-zinc-500 font-bold uppercase">Voltas</p>
-                    <p id="voltas" class="text-3xl font-black italic">0</p>
-                </div>
-                <div>
-                    <p class="text-[9px] text-zinc-500 font-bold uppercase">Última</p>
-                    <p id="ultimaVolta" class="text-3xl font-black italic text-zinc-400">--:--</p>
-                </div>
-            </div>
-
-            <button id="btnAcao" onclick="toggleGravar()" class="bg-white text-black h-14 px-10 rounded-xl font-black uppercase italic text-xl shadow-2xl active:scale-95 transition-all">
-                Iniciar
-            </button>
-        </div>
-    </div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        // CONFIGURAÇÕES DO TEU FIREBASE (AIzaSyBw...)
-        const firebaseConfig = {
-            apiKey: "AIzaSyBw-p_Gk...", 
-            authDomain: "mxlaptimer.firebaseapp.com",
-            projectId: "mxlaptimer",
-            storageBucket: "mxlaptimer.firebasestorage.app",
-            messagingSenderId: "790485374192",
-            appId: "1:79048537
