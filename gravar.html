@@ -3,37 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MX4 - Gravar</title>
+    <title>Gravar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; height: 100dvh; overflow: hidden; }
-        .lcd { font-family: monospace; text-shadow: 0 0 20px rgba(34, 197, 94, 0.5); }
-        .btn-stop { background: #dc2626; border-bottom: 4px solid #7f1d1d; }
+        body { background-color: #000; height: 100dvh; margin: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; color: white; }
+        @media screen and (orientation: portrait) {
+            #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
+        }
+        .time-sessao { 
+            font-size: 45vw; 
+            font-weight: 900; 
+            font-family: monospace; 
+            line-height: 1; 
+            color: #fff;
+            letter-spacing: -2px;
+        }
     </style>
 </head>
-<body class="flex flex-col items-center justify-center p-4">
-    
-    <div class="text-center mb-8">
-        <div id="pistaNome" class="text-zinc-500 font-bold uppercase italic text-xs tracking-widest mb-1">---</div>
-        <div id="statusGPS" class="text-[9px] text-orange-500 font-black uppercase">Aguardando GPS...</div>
-    </div>
-
-    <div class="lcd text-6xl font-black mb-2 text-green-500" id="cronometro">00:00.00</div>
-    <div class="text-zinc-600 font-bold text-xs uppercase italic mb-8">Tempo Atual</div>
-
-    <div class="grid grid-cols-2 gap-4 w-full max-w-sm mb-8">
-        <div class="bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800 text-center">
-            <div class="text-[8px] text-zinc-500 font-bold uppercase mb-1">Melhor Volta</div>
-            <div id="melhorVolta" class="text-xl font-black">--:--.--</div>
+<body>
+    <div id="app-container" class="w-full h-full flex flex-col items-center justify-between p-4">
+        
+        <div class="w-full flex justify-between items-center">
+            <button onclick="encerrarSessao()" class="text-zinc-600 font-bold uppercase text-[10px] border border-zinc-800 px-4 py-2 rounded-xl italic">← Voltar</button>
+            <div class="text-zinc-500 font-black italic text-[10px] uppercase tracking-tighter text-right leading-none">
+                <span id="txtPista">...</span><br>
+                <span id="txtPiloto" class="text-yellow-400">...</span>
+            </div>
         </div>
-        <div class="bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800 text-center">
-            <div class="text-[8px] text-zinc-500 font-bold uppercase mb-1">Volta Atual</div>
-            <div id="numVolta" class="text-xl font-black">1</div>
-        </div>
-    </div>
 
-    <button id="btnParar" class="btn-stop w-full max-w-xs py-5 rounded-2xl font-black uppercase italic tracking-tighter active:scale-95 transition-all">Parar e Salvar</button>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        <div class="flex-1 flex items-center justify-center">
+            <div id
