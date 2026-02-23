@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telemetria</title>
+    <title>Telemetria Avançada - MX4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -73,3 +73,156 @@
             <h2 class="text-yellow-500 font-black italic uppercase text-lg">Visualização Detalhada</h2>
             <span class="text-zinc-500 text-xs uppercase">Clique em qualquer lugar para fechar</span>
         </div>
+        <div id="modalContent" class="flex-1 w-full h-full"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
+            authDomain: "mxlaptimer.firebaseapp.com",
+            projectId: "mxlaptimer",
+            storageBucket: "mxlaptimer.firebasestorage.app",
+            messagingSenderId: "790485374192",
+            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const urlParams = new URLSearchParams(window.location.search);
+        const treinoId = urlParams.get('id');
+
+        let map, chart, marker;
+        let telemetriaGeral = [];
+        let voltaSelecionadaIdx = 0;
+
+        async function init() {
+            if (!treinoId) return;
+            const snap = await getDoc(doc(db, "treinos", treinoId));
+            if (!snap.exists()) return;
+            const dados = snap.data();
+            
+            telemetriaGeral = dados.telemetria || [];
+            document.getElementById('txtInfo').innerText = `${dados.pista} | ${dados.piloto}`;
+
+            renderLista(dados.voltas);
+            renderMapa(telemetriaGeral);
+            window.compararVolta(0); // Inicia com a primeira volta
+        }
+
+        function renderLista(voltas = []) {
+            const container = document.getElementById('listaVoltas');
+            const melhorTempo = [...voltas].sort()[0];
+
+            container.innerHTML = voltas.map((v, i) => `
+                <div onclick="window.compararVolta(${i})" id="volta-${i}" class="volta-item glass border-zinc-900 p-3 flex justify-between items-center cursor-pointer hover:border-zinc-700 transition-all">
+                    <div>
+                        <p class="text-[8px] font-black text-zinc-500 uppercase italic">Volta ${i+1}</p>
+                        <p class="font-mono text-sm font-bold text-white">${v}</p>
+                    </div>
+                    ${v === melhorTempo ? '<span class="text-[8px] bg-yellow-500 text-black px-2 py-1 rounded font-black">MELHOR</span>' : ''}
+                </div>
+            `).join('');
+        }
+
+        window.compararVolta = function(idx) {
+            voltaSelecionadaIdx = idx;
+            // Remove destaque de todas e adiciona na clicada
+            document.querySelectorAll('.volta-item').forEach(el => el.classList.remove('ativa'));
+            document.getElementById(`volta-${idx}`)?.classList.add('ativa');
+
+            atualizarGrafico(idx);
+        };
+
+        window.mudarComparacaoRapida = function() {
+            const modo = document.getElementById('selectComparar').value;
+            if (modo === 'melhor') {
+                // Lógica simplificada: Compara a selecionada com a volta 0 por enquanto
+                atualizarGrafico(voltaSelecionadaIdx, 0); 
+            } else {
+                atualizarGrafico(voltaSelecionadaIdx);
+            }
+        };
+
+        function renderMapa(pontos) {
+            if (map) map.remove();
+            const coords = pontos.map(p => [p.lat, p.lng]);
+            map = L.map('map', { zoomControl: false }).setView(coords[0], 16);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+
+            // Rastro com cores de performance (Simplificado para o exemplo)
+            const track = L.polyline(coords, { color: '#eab308', weight: 4, opacity: 0.6 }).addTo(map);
+            marker = L.circleMarker(coords[0], { radius: 6, color: '#fff', fillColor: '#eab308', fillOpacity: 1 }).addTo(map);
+            map.fitBounds(track.getBounds());
+        }
+
+        function atualizarGrafico(idxPrincipal, idxComparacao = null) {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            if (chart) chart.destroy();
+
+            // Aqui você filtraria os dados da telemetria por volta se tivesse os timestamps de início/fim
+            // Para este exemplo, usaremos a telemetria geral
+            const datasetPrincipal = {
+                label: `Volta ${idxPrincipal + 1}`,
+                data: telemetriaGeral.map(p => p.vel),
+                borderColor: '#eab308',
+                borderWidth: 3,
+                pointRadius: 0,
+                tension: 0.4
+            };
+
+            const datasets = [datasetPrincipal];
+
+            if (idxComparacao !== null) {
+                datasets.push({
+                    label: `Comparação (Volta ${idxComparacao + 1})`,
+                    data: telemetriaGeral.map(p => p.vel * 0.95), // Simulação de comparação
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    tension: 0.4
+                });
+            }
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: telemetriaGeral.map(p => ""),
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { grid: { color: '#111' }, ticks: { color: '#444' } },
+                        x: { display: false }
+                    },
+                    onHover: (event, elements) => {
+                        if (elements.length > 0) {
+                            const i = elements[0].index;
+                            const p = telemetriaGeral[i];
+                            marker.setLatLng([p.lat, p.lng]);
+                        }
+                    }
+                }
+            });
+        }
+
+        window.expandirElemento = (tipo) => {
+            const modal = document.getElementById('modalExp');
+            const content = document.getElementById('modalContent');
+            modal.classList.add('active');
+            content.innerHTML = tipo === 'map' ? '<div id="mapClone" class="w-full h-full"></div>' : '<canvas id="chartClone"></canvas>';
+            // Lógica de clonagem simplificada...
+        };
+
+        window.fecharModal = () => document.getElementById('modalExp').classList.remove('active');
+
+        init();
+    </script>
+</body>
+</html>
