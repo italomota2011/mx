@@ -3,83 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MX4 Timer - Gravar</title>
+    <title>Gravar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { 
+        body {
+            overscroll-behavior-y: contain; 
+            overflow: hidden; 
             background-color: #000; 
-            margin: 0; 
-            color: white; 
-            font-family: sans-serif; 
             height: 100dvh; 
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            margin: 0; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            color: white; 
         }
-        /* Estilo para quando o celular estiver deitado */
+
+        /* ROTAÇÃO FORÇADA - EXATAMENTE COMO VOCÊ QUERIA */
+        #app-container { 
+            transform: rotate(90deg); 
+            transform-origin: center; 
+            width: 100dvh; 
+            height: 100vw; 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            translate: -50% -50%; 
+            display: flex; 
+            flex-direction: column; 
+            items-center: center; 
+            justify-content: space-between; 
+            padding: 1rem;
+        }
+
         .time-sessao { 
-            font-size: 32vw; 
+            font-size: 45vw; /* Ajustado para não vazar na horizontal forçada */
             font-weight: 900; 
-            font-family: 'Courier New', Courier, monospace; 
+            font-family: monospace; 
             line-height: 1; 
-            letter-spacing: -5px;
+            color: #fff;
+            letter-spacing: -10px;
         }
-        #btnAcao { touch-action: manipulation; z-index: 50; }
+
+        /* Garante que o botão seja clicável na rotação */
+        #btnAcao {
+            position: relative;
+            z-index: 999;
+            touch-action: manipulation;
+        }
     </style>
 </head>
-<body class="p-4">
-    <div id="app-container" class="flex-1 flex flex-col justify-between">
-        
-        <div class="w-full flex justify-between items-start">
-            <div>
-                <h1 id="txtPista" class="text-xl font-black italic uppercase text-yellow-500">---</h1>
-                <p id="txtPiloto" class="text-[10px] font-bold uppercase text-zinc-500">PILOTO</p>
-            </div>
-            <div class="text-right">
-                <div id="statusGPS" class="text-[10px] font-bold uppercase text-red-500">BUSCA GPS</div>
-                <div id="statusTXT" class="text-[9px] font-black text-zinc-400 mt-1 uppercase italic bg-zinc-900 px-3 py-1 rounded-full">STANDBY</div>
+<body>
+    <div id="app-container">
+        <div class="w-full flex justify-between items-center">
+            <button onclick="window.encerrarSessao()" class="text-zinc-600 font-bold uppercase text-[10px] border border-zinc-800 px-4 py-2 rounded-xl italic">← Voltar</button>
+            <div class="text-zinc-500 font-black italic text-[10px] uppercase tracking-tighter text-right leading-none">
+                <span id="txtPista">...</span><br>
+                <span id="txtPiloto" class="text-yellow-400">...</span>
             </div>
         </div>
 
-        <div class="flex-1 flex items-center justify-center pointer-events-none">
+        <div class="flex-1 flex items-center justify-center">
             <div id="timerTotal" class="time-sessao">00:00</div>
         </div>
 
-        <div class="w-full flex justify-between items-end pb-2">
-            <div class="flex gap-10">
-                <div class="text-left">
-                    <p class="text-[10px] text-zinc-500 font-bold uppercase leading-none">Voltas</p>
-                    <p id="contagemVoltas" class="text-5xl font-black italic text-white">0</p>
-                </div>
-                <div class="text-left">
-                    <p class="text-[10px] text-zinc-500 font-bold uppercase leading-none">Status</p>
-                    <p id="txtUltimaVolta" class="text-2xl font-black italic text-zinc-400">AGUARDANDO</p>
-                </div>
+        <div class="w-full grid grid-cols-3 gap-4 items-center mb-2">
+            <div class="bg-zinc-950 p-4 rounded-3xl border border-zinc-900 text-center">
+                <div class="text-[9px] text-zinc-600 font-bold uppercase italic mb-1">Voltas</div>
+                <div id="contagemVoltas" class="text-3xl font-black italic text-white">0</div>
             </div>
 
-            <button id="btnAcao" class="bg-green-600 text-white h-14 px-10 rounded-xl font-black uppercase italic text-xl shadow-2xl active:scale-95 transition-all">
+            <button id="btnAcao" class="bg-green-600 text-white font-black py-6 rounded-3xl uppercase text-xl border-b-4 border-green-900 active:scale-95 transition-all">
                 Iniciar
             </button>
+
+            <div class="bg-zinc-950 p-4 rounded-3xl border border-zinc-900 text-center">
+                <div class="text-[9px] text-zinc-600 font-bold uppercase italic mb-1 leading-tight">Status</div>
+                <div id="statusTXT" class="text-[10px] font-black italic text-zinc-500 uppercase">Pronto</div>
+            </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
-            authDomain: "mxlaptimer.firebaseapp.com",
-            projectId: "mxlaptimer",
-            storageBucket: "mxlaptimer.firebasestorage.app",
-            messagingSenderId: "790485374192",
-            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        let gravando = false;
-        let tempoInicialSessao, intervalo, watchID;
-        let voltasCount = 0;
-        let
+        import { getFirestore, collection, addDoc, serverTimestamp } from "
