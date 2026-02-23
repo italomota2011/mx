@@ -52,35 +52,4 @@
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
-            authDomain: "mxlaptimer.firebaseapp.com",
-            projectId: "mxlaptimer",
-            storageBucket: "mxlaptimer.firebasestorage.app",
-            messagingSenderId: "790485374192",
-            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        let gravando = false;
-        let tempoInicialSessao, intervalo, watchID;
-        let voltasCount = 0;
-        let ultimaMarcacaoVolta = 0;
-        let temposVoltas = [];
-        let rastroTelemetria = []; // [Adição 1: Array para salvar o mapa]
-        
-        const pistaAtiva = JSON.parse(localStorage.getItem('pistaAtiva'));
-        const pilotoAtivo = sessionStorage.getItem('pilotoAtual') || "Piloto";
-
-        if(pistaAtiva) {
-            document.getElementById('txtPista').innerText = pistaAtiva.nome;
-            document.getElementById('txtPiloto').innerText = pilotoAtivo;
-        }
-
-        window.
+    <script type="
