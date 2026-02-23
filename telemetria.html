@@ -2,58 +2,69 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telemetria MX4</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Telemetria</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; }
-        .glass { background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 1rem; }
-        #map { height: 350px; width: 100%; border-radius: 1rem; }
-        .volta-item.ativa { border-color: #eab308; background: rgba(234, 179, 8, 0.15); }
+        body { background-color: #000; color: white; font-family: sans-serif; margin: 0; overflow-x: hidden; }
+        #map { height: 300px; width: 100%; border-radius: 1.5rem; border: 1px solid #222; }
+        .sector-table { border-collapse: separate; border-spacing: 0 4px; }
+        .bg-sector-fast { background-color: #9333ea; } /* Roxo - Recorde */
+        .bg-sector-personal { background-color: #16a34a; } /* Verde - Melhor Pessoal */
+        .bg-sector-normal { background-color: #ef4444; } /* Vermelho - Normal */
+        @media screen and (orientation: portrait) {
+            #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; overflow-y: auto; }
+        }
     </style>
 </head>
-<body class="p-4">
-
-    <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-        <h1 class="text-xl font-black italic text-yellow-500 uppercase">Análise de Performance</h1>
-        <div class="flex gap-2">
-            <select id="selectComparar" onchange="window.mudarComparacao()" class="bg-zinc-900 border border-zinc-700 text-[10px] p-2 rounded-lg font-bold uppercase text-white">
-                <option value="">Comparar com...</option>
-                <option value="melhor">Melhor Volta da Sessão</option>
-                <option value="recorde">Recorde da Pista</option>
-            </select>
-            <button onclick="history.back()" class="bg-zinc-900 px-4 py-2 rounded-lg text-[10px] font-bold uppercase">Sair</button>
-        </div>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <div class="lg:col-span-3 space-y-4">
-            <div class="glass p-4">
-                <h3 class="text-[9px] font-black text-zinc-600 uppercase italic mb-3">Voltas</h3>
-                <div id="listaVoltas" class="space-y-2"></div>
+<body>
+    <div id="app-container" class="p-4 flex flex-col gap-4">
+        <div class="flex justify-between items-center bg-zinc-900/50 p-4 rounded-3xl border border-zinc-800">
+            <div>
+                <h1 id="viewPista" class="text-yellow-500 font-black italic uppercase text-lg">---</h1>
+                <p id="viewPiloto" class="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">---</p>
             </div>
-            <div class="glass p-4">
-                <div class="flex justify-between text-[10px] font-bold">
-                    <span class="text-red-500">● FREADA</span>
-                    <span class="text-green-500">● ACELERAÇÃO</span>
+            <div class="flex flex-col items-end">
+                <select id="selectComparativo" class="bg-black text-white text-[10px] font-bold border border-zinc-700 rounded-lg p-1 outline-none">
+                    <option value="sessao">Comparar: Melhor da Sessão</option>
+                    <option value="recorde">Comparar: Recorde da Pista</option>
+                </select>
+                <button onclick="window.history.back()" class="mt-2 text-zinc-600 text-[10px] font-black uppercase italic">← Voltar</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="bg-zinc-950 p-4 rounded-[2rem] border border-zinc-900 overflow-x-auto">
+                <table class="w-full sector-table text-[10px]">
+                    <thead>
+                        <tr class="text-zinc-600 uppercase italic font-black">
+                            <th class="p-2 text-left">LAP</th>
+                            <th class="p-2 text-center">S1</th>
+                            <th class="p-2 text-center">S2</th>
+                            <th class="p-2 text-center">S3</th>
+                            <th class="p-2 text-right">TIME</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaVoltas">
+                        </tbody>
+                </table>
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <div id="map"></div>
+                <div class="flex justify-between px-2">
+                    <span id="infoVoltaSelect" class="text-[10px] font-black italic text-zinc-500 uppercase tracking-tighter">Selecione uma volta para analisar</span>
+                    <span id="infoGap" class="text-[10px] font-black italic text-red-500 uppercase tracking-tighter"></span>
                 </div>
-            </div>
-        </div>
-
-        <div class="lg:col-span-9 space-y-4">
-            <div class="glass p-2"><div id="map"></div></div>
-            <div class="glass p-6">
-                <div class="h-[250px]"><canvas id="mainChart"></canvas></div>
             </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, getDoc, collection, query, where, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
@@ -69,124 +80,88 @@
         const urlParams = new URLSearchParams(window.location.search);
         const treinoId = urlParams.get('id');
 
-        let map, chart, marker;
-        let dadosTreino, recordeGlobal, melhorVoltaIdx;
-        let voltaAtualIdx = 0;
+        let map, polyline;
+        let dadosTreino, melhorSessao, recordePista;
 
-        async function init() {
+        async function inicializar() {
             if (!treinoId) return;
-            const snap = await getDoc(doc(db, "treinos", treinoId));
-            if (!snap.exists()) return;
-            dadosTreino = snap.data();
+
+            // Carrega o treino atual
+            const docRef = doc(db, "treinos", treinoId);
+            const docSnap = await getDoc(docRef);
             
-            // Acha o índice da melhor volta da sessão
-            const tempos = dadosTreino.voltas || [];
-            const melhorTempo = [...tempos].sort()[0];
-            melhorVoltaIdx = tempos.indexOf(melhorTempo);
-
-            renderLista(tempos, melhorTempo);
-            renderMapa(dadosTreino.telemetria || []);
-            window.compararVolta(0);
-            
-            // Busca recorde global
-            const q = query(collection(db, "treinos"), where("pista", "==", dadosTreino.pista), orderBy("voltas", "asc"), limit(1));
-            const snapRec = await getDocs(q);
-            if(!snapRec.empty) recordeGlobal = snapRec.docs[0].data();
-        }
-
-        function extrairTelemetriaVolta(treino, idx) {
-            if (!treino.marcasDeVolta || !treino.telemetria) return treino.telemetria || [];
-            const inicio = treino.marcasDeVolta[idx] || 0;
-            const fim = treino.marcasDeVolta[idx + 1] || treino.telemetria.length;
-            return treino.telemetria.slice(inicio, fim);
-        }
-
-        window.compararVolta = function(idx) {
-            voltaAtualIdx = idx;
-            document.querySelectorAll('.volta-item').forEach(el => el.classList.remove('ativa'));
-            document.getElementById(`volta-${idx}`)?.classList.add('ativa');
-            window.mudarComparacao();
-        };
-
-        window.mudarComparacao = function() {
-            const comp = document.getElementById('selectComparar').value;
-            const dadosPrincipal = extrairTelemetriaVolta(dadosTreino, voltaAtualIdx);
-            let dadosRef = null;
-
-            if (comp === 'melhor') dadosRef = extrairTelemetriaVolta(dadosTreino, melhorVoltaIdx);
-            else if (comp === 'recorde' && recordeGlobal) dadosRef = recordeGlobal.telemetria;
-
-            renderGrafico(dadosPrincipal, dadosRef);
-        };
-
-        function renderGrafico(dA, dB) {
-            const ctx = document.getElementById('mainChart').getContext('2d');
-            if (chart) chart.destroy();
-
-            const datasets = [{
-                label: 'Volta Atual',
-                data: dA.map(p => p.vel),
-                borderColor: '#eab308',
-                borderWidth: 3,
-                pointRadius: 0,
-                tension: 0.3
-            }];
-
-            if (dB) {
-                datasets.push({
-                    label: 'Comparação',
-                    data: dB.map(p => p.vel),
-                    borderColor: 'rgba(255, 255, 255, 0.4)',
-                    borderWidth: 2,
-                    borderDash: [5, 5],
-                    pointRadius: 0,
-                    tension: 0.3
-                });
+            if (docSnap.exists()) {
+                dadosTreino = docSnap.data();
+                document.getElementById('viewPista').innerText = dadosTreino.pista;
+                document.getElementById('viewPiloto').innerText = dadosTreino.piloto;
+                
+                processarVoltas();
+                initMap();
             }
-
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: { labels: dA.map((_, i) => i), datasets },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { x: { display: false }, y: { grid: { color: '#111' } } },
-                    onHover: (e, el) => {
-                        if (el.length > 0) {
-                            const i = el[0].index;
-                            if(dA[i]) marker.setLatLng([dA[i].lat, dA[i].lng]);
-                        }
-                    }
-                }
-            });
         }
 
-        function renderMapa(pontos) {
-            if (map) map.remove();
-            if (!pontos.length) return;
-            map = L.map('map', { zoomControl: false }).setView([pontos[0].lat, pontos[0].lng], 16);
+        function processarVoltas() {
+            const tbody = document.getElementById('tabelaVoltas');
+            const marcas = dadosTreino.marcasDeVolta || []; //
+            const tele = dadosTreino.telemetria || []; //
+            
+            tbody.innerHTML = "";
+
+            // Lógica para dividir em 3 setores por volta (divisão proporcional do rastro da volta)
+            for (let i = 0; i < marcas.length - 1; i++) {
+                const inicioIdx = marcas[i];
+                const fimIdx = marcas[i+1];
+                const rastroVolta = tele.slice(inicioIdx, fimIdx);
+                
+                // Dividindo a volta em 3 setores iguais em quantidade de pontos de GPS
+                const terco = Math.floor(rastroVolta.length / 3);
+                
+                const s1 = rastroVolta[terco].ts - rastroVolta[0].ts;
+                const s2 = rastroVolta[terco*2].ts - rastroVolta[terco].ts;
+                const s3 = rastroVolta[rastroVolta.length-1].ts - rastroVolta[terco*2].ts;
+                const tempoTotal = dadosTreino.voltas[i];
+
+                const tr = document.createElement('tr');
+                tr.className = "bg-zinc-900/40 cursor-pointer active:scale-[0.98] transition-all";
+                tr.onclick = () => plotarVoltaNoMapa(rastroVolta, i+1);
+                
+                tr.innerHTML = `
+                    <td class="p-3 font-black italic text-zinc-500">${i+1}</td>
+                    <td class="p-3 text-center font-mono font-bold bg-sector-normal rounded-l-lg">${(s1/1000).toFixed(3)}</td>
+                    <td class="p-3 text-center font-mono font-bold bg-sector-normal">${(s2/1000).toFixed(3)}</td>
+                    <td class="p-3 text-center font-mono font-bold bg-sector-normal rounded-r-lg">${(s3/1000).toFixed(3)}</td>
+                    <td class="p-3 text-right font-black italic text-white">${tempoTotal}</td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+
+        function initMap() {
+            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([0,0], 13);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-
-            for (let i = 1; i < pontos.length; i++) {
-                const p1 = pontos[i-1]; const p2 = pontos[i];
-                const v = parseFloat(p2.vel);
-                const cor = v > 60 ? '#22c55e' : (v > 30 ? '#eab308' : '#ef4444');
-                L.polyline([[p1.lat, p1.lng], [p2.lat, p2.lng]], { color: cor, weight: 5 }).addTo(map);
+            
+            if (dadosTreino.telemetria.length > 0) {
+                const lastPos = [dadosTreino.telemetria[0].lat, dadosTreino.telemetria[0].lng];
+                map.setView(lastPos, 17);
             }
-            marker = L.circleMarker([pontos[0].lat, pontos[0].lng], { radius: 6, color: '#fff', fillColor: '#3b82f6', fillOpacity: 1 }).addTo(map);
-            map.fitBounds(L.polyline(pontos.map(p => [p.lat, p.lng])).getBounds());
         }
 
-        function renderLista(voltas, melhor) {
-            document.getElementById('listaVoltas').innerHTML = voltas.map((v, i) => `
-                <div onclick="window.compararVolta(${i})" id="volta-${i}" class="volta-item glass border-zinc-900 p-3 flex justify-between items-center cursor-pointer">
-                    <span class="text-xs font-bold">Volta ${i+1}</span>
-                    <span class="font-mono text-xs ${v === melhor ? 'text-yellow-500' : ''}">${v}</span>
-                </div>
-            `).join('');
+        function plotarVoltaNoMapa(rastro, numVolta) {
+            if (polyline) map.removeLayer(polyline);
+            
+            const pontos = rastro.map(p => [p.lat, p.lng]);
+            polyline = L.polyline(pontos, {
+                color: '#eab308',
+                weight: 4,
+                opacity: 0.8,
+                smoothFactor: 1
+            }).addTo(map);
+            
+            map.fitBounds(polyline.getBounds());
+            document.getElementById('infoVoltaSelect').innerText = `Analisando Volta ${numVolta}`;
         }
 
-        init();
+        inicializar();
     </script>
 </body>
 </html>
