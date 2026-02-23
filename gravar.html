@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gravar</title>
+    <title>MX4 Timer - Gravar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { 
@@ -12,43 +12,74 @@
             color: white; 
             font-family: sans-serif; 
             height: 100dvh; 
-            display: flex; 
-            flex-direction: column;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
-
-        /* Quando o celular estiver deitado (Paisagem) */
-        @media (orientation: landscape) {
-            .time-sessao { font-size: 50vw; }
-            .container-principal { padding: 2vh 5vw; }
-        }
-
-        /* Quando o celular estiver em pé (Retrato) */
-        @media (orientation: portrait) {
-            .time-sessao { font-size: 25vw; }
-            .container-principal { padding: 5vh 5vw; }
-        }
-
+        /* Estilo para quando o celular estiver deitado */
         .time-sessao { 
+            font-size: 32vw; 
             font-weight: 900; 
             font-family: 'Courier New', Courier, monospace; 
-            letter-spacing: -2px;
-            line-height: 1;
-            transition: font-size 0.3s ease;
+            line-height: 1; 
+            letter-spacing: -5px;
         }
-
-        #btnAcao {
-            touch-action: manipulation;
-            z-index: 9999;
-        }
+        #btnAcao { touch-action: manipulation; z-index: 50; }
     </style>
 </head>
-<body class="container-principal justify-between">
-    
-    <div class="flex justify-between items-start">
-        <div>
-            <h1 id="pistaNome" class="text-xl font-black italic uppercase text-yellow-500">---</h1>
-            <p id="pilotoNome" class="text-[10px] font-bold uppercase text-zinc-500">PILOTO</p>
+<body class="p-4">
+    <div id="app-container" class="flex-1 flex flex-col justify-between">
+        
+        <div class="w-full flex justify-between items-start">
+            <div>
+                <h1 id="txtPista" class="text-xl font-black italic uppercase text-yellow-500">---</h1>
+                <p id="txtPiloto" class="text-[10px] font-bold uppercase text-zinc-500">PILOTO</p>
+            </div>
+            <div class="text-right">
+                <div id="statusGPS" class="text-[10px] font-bold uppercase text-red-500">BUSCA GPS</div>
+                <div id="statusTXT" class="text-[9px] font-black text-zinc-400 mt-1 uppercase italic bg-zinc-900 px-3 py-1 rounded-full">STANDBY</div>
+            </div>
         </div>
-        <div class="text-right">
-            <div id="statusGPS" class="text-[10px] font-bold uppercase text-red-5
+
+        <div class="flex-1 flex items-center justify-center pointer-events-none">
+            <div id="timerTotal" class="time-sessao">00:00</div>
+        </div>
+
+        <div class="w-full flex justify-between items-end pb-2">
+            <div class="flex gap-10">
+                <div class="text-left">
+                    <p class="text-[10px] text-zinc-500 font-bold uppercase leading-none">Voltas</p>
+                    <p id="contagemVoltas" class="text-5xl font-black italic text-white">0</p>
+                </div>
+                <div class="text-left">
+                    <p class="text-[10px] text-zinc-500 font-bold uppercase leading-none">Status</p>
+                    <p id="txtUltimaVolta" class="text-2xl font-black italic text-zinc-400">AGUARDANDO</p>
+                </div>
+            </div>
+
+            <button id="btnAcao" class="bg-green-600 text-white h-14 px-10 rounded-xl font-black uppercase italic text-xl shadow-2xl active:scale-95 transition-all">
+                Iniciar
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
+            authDomain: "mxlaptimer.firebaseapp.com",
+            projectId: "mxlaptimer",
+            storageBucket: "mxlaptimer.firebasestorage.app",
+            messagingSenderId: "790485374192",
+            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let gravando = false;
+        let tempoInicialSessao, intervalo, watchID;
+        let voltasCount = 0;
+        let
