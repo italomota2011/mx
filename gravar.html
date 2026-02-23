@@ -27,11 +27,10 @@
             flex-direction: column;
             justify-content: space-between;
             align-items: center;
-            padding: 2vh 4vh;
+            padding: 3vh; /* Margem interna de segurança */
             box-sizing: border-box;
         }
 
-        /* Se o celular já estiver deitado, não rotaciona */
         @media screen and (orientation: landscape) {
             #app-container {
                 transform: translate(-50%, -50%) rotate(0deg);
@@ -40,42 +39,67 @@
             }
         }
 
-        /* Cronômetro Responsivo: Ajusta o tamanho da fonte para nunca cortar */
+        /* AJUSTE FINAL DO TAMANHO: Reduzi para 32vw para garantir que os 5 caracteres (00:00) caibam */
         .time-sessao { 
-            font-size: clamp(10rem, 45vh, 25rem);
+            font-size: 32vw; 
             font-weight: 900; 
             font-family: 'Courier New', Courier, monospace; 
             line-height: 1; 
             color: #fff; 
             text-align: center;
-            width: 100%;
+            letter-spacing: -2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1; /* Ocupa o espaço central disponível */
         }
-
-        .font-mono-custom { font-family: 'Courier New', Courier, monospace; }
     </style>
 </head>
 <body>
     <div id="app-container">
         
-        <div class="w-full flex justify-between items-center">
-            <div class="text-left">
-                <h1 id="pistaNome" class="text-xl font-black italic uppercase text-yellow-500 leading-tight">---</h1>
-                <p id="pilotoNome" class="text-[10px] font-bold uppercase text-zinc-500 tracking-widest">Piloto</p>
+        <div class="w-full flex justify-between items-start border-b border-zinc-900 pb-2">
+            <div>
+                <h1 id="pistaNome" class="text-lg font-black italic uppercase text-yellow-500 leading-none">---</h1>
+                <p id="pilotoNome" class="text-[9px] font-bold uppercase text-zinc-600">Piloto</p>
             </div>
             <div class="text-right">
-                <div id="statusGPS" class="text-[10px] font-bold uppercase text-red-500">Busca GPS</div>
-                <div id="infoSetor" class="text-[9px] font-black text-zinc-400 mt-1 uppercase italic bg-zinc-900 px-3 py-1 rounded-full">AGUARDANDO</div>
+                <div id="statusGPS" class="text-[9px] font-bold uppercase text-red-500">Busca GPS</div>
+                <div id="infoSetor" class="text-[8px] font-black text-zinc-500 mt-1 uppercase italic bg-zinc-900 px-2 py-0.5 rounded">Sessão</div>
             </div>
         </div>
 
-        <div id="displayTempo" class="time-sessao">00:00</div>
+        <div class="flex-grow flex items-center justify-center w-full overflow-hidden">
+            <div id="displayTempo" class="time-sessao">00:00</div>
+        </div>
 
-        <div class="w-full flex justify-between items-end">
-            <div class="flex gap-8 mb-2">
-                <div class="text-left">
-                    <p class="text-[10px] text-zinc-500 font-bold uppercase">Voltas</p>
-                    <p id="voltas" class="text-4xl font-black italic text-white leading-none">0</p>
+        <div class="w-full flex justify-between items-center border-t border-zinc-900 pt-2">
+            <div class="flex gap-10">
+                <div>
+                    <p class="text-[9px] text-zinc-500 font-bold uppercase">Voltas</p>
+                    <p id="voltas" class="text-3xl font-black italic">0</p>
                 </div>
-                <div class="text-left">
-                    <p class="text-[10px] text-zinc-500 font-bold uppercase">Última</p>
-                    <p id="ultimaVolta
+                <div>
+                    <p class="text-[9px] text-zinc-500 font-bold uppercase">Última</p>
+                    <p id="ultimaVolta" class="text-3xl font-black italic text-zinc-400">--:--</p>
+                </div>
+            </div>
+
+            <button id="btnAcao" onclick="toggleGravar()" class="bg-white text-black h-14 px-10 rounded-xl font-black uppercase italic text-xl shadow-2xl active:scale-95 transition-all">
+                Iniciar
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // CONFIGURAÇÕES DO TEU FIREBASE (AIzaSyBw...)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBw-p_Gk...", 
+            authDomain: "mxlaptimer.firebaseapp.com",
+            projectId: "mxlaptimer",
+            storageBucket: "mxlaptimer.firebasestorage.app",
+            messagingSenderId: "790485374192",
+            appId: "1:79048537
