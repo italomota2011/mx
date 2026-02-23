@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MX4 - Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #050505; color: #fff; font-family: sans-serif; }
+        .item-card { background: #111; border: 1px solid #222; border-radius: 1.5rem; }
+        input { background: #1a1a1a; border: 1px solid #333; color: white; }
+    </style>
+</head>
+<body class="p-6">
+    <div id="loginArea" class="max-w-md mx-auto mt-20 text-center">
+        <h1 class="text-2xl font-black italic mb-6 text-yellow-500 uppercase">Acesso Restrito</h1>
+        <input type="password" id="senhaAdmin" placeholder="Senha de Admin" class="w-full p-4 rounded-2xl mb-4 outline-none text-center text-xl tracking-widest">
+        <button onclick="verificarSenha()" class="w-full bg-yellow-600 p-4 rounded-2xl font-bold uppercase">Entrar</button>
+        <a href="index.html" class="block mt-6 text-zinc-500 text-xs uppercase font-bold">Voltar ao Início</a>
+    </div>
+
+    <div id="adminPanel" class="max-w-4xl mx-auto hidden">
+        <header class="flex justify-between items-center mb-10">
+            <h1 class="text-xl font-black italic text-yellow-500 uppercase">Gerenciar <span class="text-white">Dados</span></h1>
+            <button onclick="location.reload()" class="bg-zinc-800 px-4 py-2 rounded-xl text-xs font-bold">Sair</button>
+        </header>
+
+        <section class="mb-10">
+            <h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4 border-l-4 border-orange-600 pl-2">Pistas Mapeadas</h2>
+            <div id="listaPistas" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </section>
+
+        <section>
+            <h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4 border-l-4 border-blue-600 pl-2">Treinos e Tempos</h2>
+            <div id="listaTreinos" class="space-y-4"></div>
+        </section>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
+            authDomain: "mxlaptimer.firebaseapp.com",
+            projectId: "mxlaptimer",
+            storageBucket: "mxlaptimer.firebasestorage.app",
+            messagingSenderId: "790485374192",
+            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.verificarSenha = function() {
+            const senha = document.getElementById('senhaAdmin').value;
+            if (senha === "261291") {
+                document.getElementById('loginArea').classList.add('hidden');
+                document.getElementById('adminPanel').classList.remove('hidden');
+                carregarDados();
+            } else {
+                alert("Senha Incorreta!");
+            }
+        };
+
+        async function carregarDados() {
+            // Carregar Pistas
+            const pistasSnap = await getDocs(collection(db, "pistas"));
+            const containerPistas = document.getElementById('listaPistas');
+            containerPistas.innerHTML = "";
+            pistasSnap.forEach(p => {
+                const data = p.data();
+                containerPistas.innerHTML += `
+                    <div class="item-card p-4 flex justify-between items-center">
+                        <div>
+                            <p class="font-bold text-sm uppercase">${data.nome}</p>
+                            <p class="text-[9px] text-zinc-600">ID: ${p.id}</p>
+                        </div>
+                        <button onclick="apagarDocumento('pistas', '${p.id}')" class="text-red-600 text-[10px] font-bold uppercase border border-red-900/50 px-3 py-1 rounded-lg">Apagar</button>
+                    </div>
+                `;
+            });
+
+            // Carregar Treinos
+            const treinosSnap = await getDocs(query(collection(db, "treinos"), orderBy("data", "desc")));
+            const containerTreinos = document.getElementById('listaTreinos');
+            containerTreinos.innerHTML = "";
+            treinosSnap.forEach(t => {
+                const data = t.data();
+                containerTreinos.innerHTML += `
+                    <div class="item-card p-4 flex justify-between items-center">
+                        <div>
+                            <p class="font-bold text-sm uppercase text-zinc-200">${data.piloto} <span class="text-zinc-600 text-[10px]">em</span> ${data.pista}</p>
+                            <p class="text-[9px] text-yellow-500 font-mono">Melhor Volta: ${[...data.voltas].sort()[0]}</p>
+                        </div>
+                        <button onclick="apagarDocumento('treinos', '${t.id}')" class="bg-red-900/20 text-red-500 text-[10px] font-bold uppercase px-3 py-1 rounded-lg border border-red-900/50">Excluir</button>
+                    </div>
+                `;
+            });
+        }
+
+        window.apagarDocumento = async function(colecao, id) {
+            if (confirm("Tem certeza que deseja apagar? Esta ação não pode ser desfeita.")) {
+                try {
+                    await deleteDoc(doc(db, colecao, id));
+                    alert("Removido com sucesso!");
+                    carregarDados(); // Recarrega a lista
+                } catch (e) {
+                    alert("Erro ao apagar: " + e.message);
+                }
+            }
+        };
+    </script>
+</body>
+</html>
