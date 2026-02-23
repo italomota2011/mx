@@ -1,44 +1,23 @@
-// sw.js - Otimizado para MX Lap Timer
-const CACHE_NAME = 'mx-timer-v1';
-const ASSETS_TO_CACHE = [
+const CACHE_NAME = 'mx-timer-v2';
+const assets = [
   './',
   './index.html',
   './manifest.json',
-  // Adicione aqui outros arquivos locais como .css ou .js se tiver
-  'https://github.com/italomota2011/mx/blob/main/icon.jpg'
+  'https://github.com/italomota2011/mx/blob/main/icon.jpg?raw=true'
 ];
 
-// Instalação: Salva os arquivos no cache
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('MX Timer: Armazenando arquivos para uso na pista...');
-      return cache.addAll(ASSETS_TO_CACHE);
+      return cache.addAll(assets);
     })
   );
-  self.skipWaiting();
 });
 
-// Ativação: Remove caches antigos (importante para atualizações)
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
-      );
-    })
-  );
-  self.claim();
-});
-
-// Fetch: Intercepta as chamadas e prioriza o Cache, depois a Rede
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((response) => {
-      // Se estiver no cache, retorna. Se não, busca na rede.
-      return response || fetch(event.request).catch(() => {
-        console.log('MX Timer: Offline e sem cache para esta requisição.');
-      });
+      return response || fetch(event.request);
     })
   );
 });
