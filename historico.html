@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ranking MX4</title>
+    <title>Ranking</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #000; color: white; min-height: 100dvh; margin: 0; font-family: sans-serif; }
@@ -35,7 +35,6 @@
     </div>
 
     <script type="module">
-        // 1. IMPORTAÇÕES (Tudo que vem do Firebase precisa estar aqui no topo)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, query, onSnapshot, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -44,123 +43,4 @@
             authDomain: "mxlaptimer.firebaseapp.com",
             projectId: "mxlaptimer",
             storageBucket: "mxlaptimer.firebasestorage.app",
-            messagingSenderId: "790485374192",
-            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
-        };
-
-        // 2. INICIALIZAÇÃO
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        // 3. ATIVAÇÃO DO MODO OFFLINE (Sempre logo após inicializar o 'db')
-        enableIndexedDbPersistence(db).catch((err) => {
-            if (err.code == 'failed-precondition') {
-                console.warn("Persistência falhou: Múltiplas abas abertas.");
-            } else if (err.code == 'unimplemented') {
-                console.warn("O navegador não suporta persistência offline.");
-            }
-        });
-
-        let dadosRanking = {};
-
-        // 4. CONSULTA DE DADOS
-        const q = query(collection(db, "treinos"));
-
-        onSnapshot(q, (snapshot) => {
-            console.log("Treinos carregados:", snapshot.size);
-            dadosRanking = {};
-            const select = document.getElementById('filtroPista');
-            const pistasSet = new Set();
-            const valAnterior = select.value;
-
-            if (snapshot.empty) {
-                document.getElementById('msgStatus').innerText = "Nenhum treino registrado ainda.";
-                return;
-            }
-
-            snapshot.forEach(doc => {
-                const t = doc.data();
-                const nomePistaRaw = t.pista || "PISTA DESCONHECIDA";
-                const nomePista = nomePistaRaw.toUpperCase();
-                const voltas = t.voltas && Array.isArray(t.voltas) ? t.voltas : [];
-
-                if (voltas.length > 0) {
-                    pistasSet.add(nomePista);
-                    const melhorVoltaSessao = [...voltas].sort()[0];
-
-                    let dataFormatada = "00/00/0000";
-                    if (t.data) {
-                        try {
-                            const dt = t.data.toDate ? t.data.toDate() : new Date(t.data);
-                            dataFormatada = dt.toLocaleDateString('pt-BR');
-                        } catch(e) { console.error("Erro data:", e); }
-                    }
-
-                    if (!dadosRanking[nomePista]) dadosRanking[nomePista] = [];
-                    dadosRanking[nomePista].push({
-                        id: doc.id,
-                        piloto: t.piloto || "Anônimo",
-                        tempo: melhorVoltaSessao,
-                        data: dataFormatada
-                    });
-                }
-            });
-
-            select.innerHTML = '<option value="TODAS">Todas as Pistas</option>';
-            Array.from(pistasSet).sort().forEach(p => {
-                const opt = document.createElement('option');
-                opt.value = p;
-                opt.innerText = p;
-                select.appendChild(opt);
-            });
-            select.value = valAnterior;
-            renderizar();
-        });
-
-        window.renderizar = function() {
-            const container = document.getElementById('listaTreinos');
-            const filtro = document.getElementById('filtroPista').value;
-            container.innerHTML = '';
-            const pistasEncontradas = Object.keys(dadosRanking).sort();
-
-            if (pistasEncontradas.length === 0) {
-                container.innerHTML = '<div class="text-center text-zinc-800 font-bold uppercase italic text-[10px] mt-20">Nenhum dado encontrado.</div>';
-                return;
-            }
-
-            pistasEncontradas.forEach(nomePista => {
-                if (filtro !== "TODAS" && filtro !== nomePista) return;
-                const rankPista = dadosRanking[nomePista].sort((a, b) => a.tempo.localeCompare(b.tempo));
-
-                let html = `
-                    <div class="card-pista rounded-[2rem] overflow-hidden shadow-2xl mb-8">
-                        <div class="bg-zinc-900/60 p-5 border-b border-zinc-800 flex justify-between items-center">
-                            <h3 class="text-sm font-black italic uppercase text-yellow-400 tracking-tighter">${nomePista}</h3>
-                            <span class="text-[7px] text-zinc-600 font-bold uppercase italic text-right leading-none">Ranking<br>Best Lap</span>
-                        </div>
-                        <div class="p-3 space-y-2">
-                `;
-
-                rankPista.forEach((item, i) => {
-                    html += `
-                        <div onclick="location.href='telemetria.html?id=${item.id}'" class="btn-telemetria flex justify-between items-center p-4 bg-zinc-900/30 rounded-2xl border border-zinc-800/30 active:border-yellow-500/50 transition-all">
-                            <div class="flex items-center gap-4">
-                                <span class="font-black italic w-6 text-center ${i === 0 ? 'text-yellow-500 text-lg' : 'text-zinc-700 text-xs'}">${i+1}º</span>
-                                <div>
-                                    <div class="font-bold uppercase italic text-zinc-100 text-xs leading-none">${item.piloto}</div>
-                                    <div class="text-[8px] text-zinc-500 font-bold uppercase mt-1.5 italic">${item.data}</div>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-[7px] text-zinc-600 font-bold uppercase italic">Tempo</div>
-                                <div class="text-lg font-black font-mono text-white">${item.tempo}</div>
-                            </div>
-                        </div>
-                    `;
-                });
-                container.innerHTML += html + `</div></div>`;
-            });
-        };
-    </script>
-</body>
-</html>
+            messagingSenderId: "79048537419
