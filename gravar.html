@@ -18,7 +18,7 @@
             color: white; 
         }
 
-        /* ROTAÇÃO FORÇADA - EXATAMENTE COMO VOCÊ QUERIA */
+        /* ROTAÇÃO FORÇADA TRAVADA */
         #app-container { 
             transform: rotate(90deg); 
             transform-origin: center; 
@@ -30,13 +30,13 @@
             translate: -50% -50%; 
             display: flex; 
             flex-direction: column; 
-            items-center: center; 
             justify-content: space-between; 
-            padding: 1rem;
+            padding: 1.5rem;
+            pointer-events: none; /* Cliques passam pelo fundo e chegam nos botões */
         }
 
         .time-sessao { 
-            font-size: 45vw; /* Ajustado para não vazar na horizontal forçada */
+            font-size: 45vw; 
             font-weight: 900; 
             font-family: monospace; 
             line-height: 1; 
@@ -44,10 +44,12 @@
             letter-spacing: -10px;
         }
 
-        /* Garante que o botão seja clicável na rotação */
-        #btnAcao {
+        /* ÁREA DE CLIQUE REAL */
+        button, #btnAcao {
+            pointer-events: auto !important; /* Reativa o clique nos botões */
             position: relative;
-            z-index: 999;
+            z-index: 9999;
+            cursor: pointer;
             touch-action: manipulation;
         }
     </style>
@@ -55,34 +57,5 @@
 <body>
     <div id="app-container">
         <div class="w-full flex justify-between items-center">
-            <button onclick="window.encerrarSessao()" class="text-zinc-600 font-bold uppercase text-[10px] border border-zinc-800 px-4 py-2 rounded-xl italic">← Voltar</button>
-            <div class="text-zinc-500 font-black italic text-[10px] uppercase tracking-tighter text-right leading-none">
-                <span id="txtPista">...</span><br>
-                <span id="txtPiloto" class="text-yellow-400">...</span>
-            </div>
-        </div>
-
-        <div class="flex-1 flex items-center justify-center">
-            <div id="timerTotal" class="time-sessao">00:00</div>
-        </div>
-
-        <div class="w-full grid grid-cols-3 gap-4 items-center mb-2">
-            <div class="bg-zinc-950 p-4 rounded-3xl border border-zinc-900 text-center">
-                <div class="text-[9px] text-zinc-600 font-bold uppercase italic mb-1">Voltas</div>
-                <div id="contagemVoltas" class="text-3xl font-black italic text-white">0</div>
-            </div>
-
-            <button id="btnAcao" class="bg-green-600 text-white font-black py-6 rounded-3xl uppercase text-xl border-b-4 border-green-900 active:scale-95 transition-all">
-                Iniciar
-            </button>
-
-            <div class="bg-zinc-950 p-4 rounded-3xl border border-zinc-900 text-center">
-                <div class="text-[9px] text-zinc-600 font-bold uppercase italic mb-1 leading-tight">Status</div>
-                <div id="statusTXT" class="text-[10px] font-black italic text-zinc-500 uppercase">Pronto</div>
-            </div>
-        </div>
-    </div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, serverTimestamp } from "
+            <button id="btnVoltar" class="text-zinc-400 font-bold uppercase text-[12px] border border-zinc-800 px-6 py-3 rounded-xl italic bg-zinc-900">
+                ← Vol
