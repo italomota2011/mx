@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MX Lap Timer</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ea580c">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #000; height: 100dvh; margin: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; font-family: sans-serif; }
@@ -99,7 +101,15 @@
             location.href = 'gravar.html';
         };
     </script>
+    <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+    .then(() => console.log("Service Worker Ativo!"))
+    .catch(err => console.log("Erro no SW:", err));
+  }
+</script>
 </body>
 </html>
+
 
 
