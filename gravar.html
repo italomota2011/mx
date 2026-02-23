@@ -6,43 +6,93 @@
     <title>Gravar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { overscroll-behavior-y: contain; overflow: hidden; background-color: #000; height: 100dvh; margin: 0; display: flex; align-items: center; justify-content: center; color: white; font-family: sans-serif; }
-        @media screen and (orientation: portrait) {
-            #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
+        body { 
+            overscroll-behavior-y: contain; 
+            overflow: hidden; 
+            background-color: #000; 
+            height: 100dvh; 
+            margin: 0; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            color: white; 
+            font-family: sans-serif; 
         }
-        .time-sessao { font-size: 35vw; font-weight: 900; font-family: monospace; line-height: 1; color: #fff; letter-spacing: -10px; }
+
+        /* Container que rotaciona para preencher a tela */
+        #app-container { 
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            width: 100%;
+            height: 100%;
+        }
+
+        @media screen and (orientation: portrait) {
+            #app-container { 
+                transform: rotate(90deg); 
+                transform-origin: center; 
+                width: 100dvh; 
+                height: 100vw; 
+                position: absolute; 
+                top: 50%; 
+                left: 50%; 
+                translate: -50% -50%; 
+            }
+        }
+
+        /* Ajuste do Cronômetro: Agora baseado na altura (vh) para não estourar */
+        .time-sessao { 
+            font-size: 35vh; /* Ajustado de 55vw para 35vh */
+            font-weight: 900; 
+            font-family: monospace; 
+            line-height: 0.9; 
+            color: #fff;
+            letter-spacing: -5px;
+        }
+
+        /* Estilo para não quebrar o layout em telas menores */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: -1vh;
+        }
     </style>
 </head>
 <body>
-    <div id="app-container" class="w-full h-full flex flex-col items-center justify-between p-4">
+    <div id="app-container">
         
-        <div class="w-full flex justify-between items-start pt-2">
-            <div>
-                <h1 id="pistaNome" class="text-2xl font-black italic uppercase leading-none text-yellow-500 text-left">---</h1>
-                <p id="pilotoNome" class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 text-left">Piloto</p>
+        <div class="w-full flex justify-between items-start">
+            <div class="max-w-[60%]">
+                <h1 id="pistaNome" class="text-xl font-black italic uppercase leading-none text-yellow-500 truncate">---</h1>
+                <p id="pilotoNome" class="text-[9px] font-bold uppercase tracking-widest text-zinc-500">Piloto</p>
             </div>
             <div class="text-right">
-                <div id="statusGPS" class="text-[10px] font-bold uppercase text-red-500">Aguardando GPS...</div>
-                <div id="infoSetor" class="text-[9px] font-black text-zinc-400 mt-1 uppercase italic">Procurando Largada</div>
+                <div id="statusGPS" class="text-[9px] font-bold uppercase text-red-500">Aguardando GPS...</div>
+                <div id="infoSetor" class="text-[8px] font-black text-zinc-400 mt-1 uppercase italic bg-zinc-900 px-2 py-0.5 rounded">LARGADA</div>
             </div>
         </div>
 
-        <div class="flex flex-col items-center">
+        <div class="flex flex-col items-center w-full">
             <div id="displayTempo" class="time-sessao">00:00</div>
-            <div class="flex gap-10 mt-[-40px]">
-                <div class="text-center">
-                    <p class="text-[10px] text-zinc-500 font-bold uppercase">Voltas</p>
-                    <p id="voltas" class="text-4xl font-black italic">0</p>
+            
+            <div class="info-grid">
+                <div class="text-center border-r border-zinc-800 pr-8">
+                    <p class="text-[8px] text-zinc-500 font-bold uppercase">Voltas</p>
+                    <p id="voltas" class="text-3xl font-black italic">0</p>
                 </div>
-                <div class="text-center">
-                    <p class="text-[10px] text-zinc-500 font-bold uppercase">Última Volta</p>
-                    <p id="ultimaVolta" class="text-4xl font-black italic text-zinc-400">--:--</p>
+                <div class="text-center pl-4">
+                    <p class="text-[8px] text-zinc-500 font-bold uppercase">Última Volta</p>
+                    <p id="ultimaVolta" class="text-3xl font-black italic text-zinc-400">--:--</p>
                 </div>
             </div>
         </div>
 
-        <div class="w-full pb-4 px-10">
-            <button id="btnAcao" onclick="toggleGravar()" class="w-full bg-white text-black h-20 rounded-3xl font-black uppercase italic text-2xl shadow-2xl active:scale-95 transition-all">Iniciar Treino</button>
+        <div class="w-full max-w-sm px-4">
+            <button id="btnAcao" onclick="toggleGravar()" class="w-full bg-white text-black h-14 rounded-2xl font-black uppercase italic text-xl shadow-2xl active:scale-95 transition-all">Iniciar Treino</button>
         </div>
     </div>
 
@@ -50,7 +100,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // CONFIGURAÇÕES DO SEU FIREBASE (Mantenha as suas originais aqui)
+        // Mantenha suas configurações originais aqui
         const firebaseConfig = {
             apiKey: "AIzaSyBw-p_Gk...", 
             authDomain: "mxlaptimer.firebaseapp.com",
@@ -60,164 +110,4 @@
             appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        enableIndexedDbPersistence(db).catch(() => console.log("Offline mode ready"));
-
-        // Variáveis de Estado
-        let gravando = false;
-        let tempoInicioVolta = 0;
-        let tempoInicialSessao = 0;
-        let voltasCount = 0;
-        let temposVoltas = [];
-        let rastroTelemetria = [];
-        let watchID = null;
-
-        // Lógica de Setores
-        let checkpointAtual = 0; 
-        let temposSetoresVoltaAtual = [];
-        let ultimoTimestampReferencia = 0;
-
-        const pistaAtiva = JSON.parse(localStorage.getItem('pistaAtiva'));
-        const pilotoAtivo = sessionStorage.getItem('pilotoAtual');
-
-        if(pistaAtiva) {
-            document.getElementById('pistaNome').innerText = pistaAtiva.nome;
-            document.getElementById('pilotoNome').innerText = pilotoAtivo || "Piloto Desconhecido";
-        }
-
-        window.toggleGravar = function() {
-            if (!gravando) {
-                iniciar();
-            } else {
-                parar();
-            }
-        }
-
-        function iniciar() {
-            gravando = true;
-            tempoInicialSessao = Date.now();
-            document.getElementById('btnAcao').innerText = "Parar e Salvar";
-            document.getElementById('btnAcao').classList.replace('bg-white', 'bg-red-600');
-            document.getElementById('btnAcao').classList.add('text-white');
-
-            watchID = navigator.geolocation.watchPosition(processarPosicao, null, {
-                enableHighAccuracy: true,
-                maximumAge: 0,
-                timeout: 5000
-            });
-
-            atualizarCronometro();
-        }
-
-        function processarPosicao(pos) {
-            const { latitude: lat, longitude: lng, speed } = pos.coords;
-            const vel = (speed * 3.6) || 0;
-
-            document.getElementById('statusGPS').innerText = "GPS ATIVO";
-            document.getElementById('statusGPS').classList.replace('text-red-500', 'text-green-500');
-
-            if (gravando) {
-                rastroTelemetria.push({ lat, lng, vel, ts: Date.now() });
-
-                // Se a pista tiver array de checkpoints usa eles, senão usa lat/lng antigo (compatibilidade)
-                const checkpoints = pistaAtiva.checkpoints || [{ lat: pistaAtiva.lat, lng: pistaAtiva.lng, tipo: "chegada" }];
-                const target = checkpoints[checkpointAtual];
-
-                const dist = calcularDistancia(lat, lng, target.lat, target.lng);
-                
-                // Feedback visual do setor que o piloto deve cruzar
-                document.getElementById('infoSetor').innerText = `Procurando: ${target.tipo}`;
-
-                if (dist < 0.020) { // Raio de 20 metros
-                    const agora = Date.now();
-
-                    if (target.tipo === "chegada") {
-                        if (tempoInicioVolta > 0) {
-                            const tempoTotalMs = agora - tempoInicioVolta;
-                            
-                            // Calcula o último setor (entre S3 e Chegada)
-                            const tempoS_Final = agora - ultimoTimestampReferencia;
-                            temposSetoresVoltaAtual.push(tempoS_Final);
-
-                            const voltaData = {
-                                total: formatarTempo(tempoTotalMs),
-                                ms: tempoTotalMs,
-                                setores: [...temposSetoresVoltaAtual]
-                            };
-
-                            temposVoltas.push(voltaData);
-                            document.getElementById('ultimaVolta').innerText = voltaData.total;
-                            voltasCount++;
-                            document.getElementById('voltas').innerText = voltasCount;
-                        }
-                        
-                        // Reinicia para a próxima volta
-                        tempoInicioVolta = agora;
-                        ultimoTimestampReferencia = agora;
-                        temposSetoresVoltaAtual = [];
-                        // Se houver setores, o próximo alvo é o S1 (index 1), senão volta pro 0
-                        checkpointAtual = checkpoints.length > 1 ? 1 : 0;
-
-                    } else {
-                        // Cruzou um setor intermediário (S1, S2 ou S3)
-                        const tempoSetor = agora - ultimoTimestampReferencia;
-                        temposSetoresVoltaAtual.push(tempoSetor);
-                        ultimoTimestampReferencia = agora;
-                        checkpointAtual++; // Vai para o próximo checkpoint da lista
-                    }
-                }
-            }
-        }
-
-        function atualizarCronometro() {
-            if (!gravando) return;
-            if (tempoInicioVolta > 0) {
-                const diff = Date.now() - tempoInicioVolta;
-                document.getElementById('displayTempo').innerText = formatarTempo(diff);
-            }
-            requestAnimationFrame(atualizarCronometro);
-        }
-
-        async function parar() {
-            gravando = false;
-            navigator.geolocation.clearWatch(watchID);
-            const btn = document.getElementById('btnAcao');
-            btn.disabled = true;
-            btn.innerText = "Salvando...";
-
-            try {
-                await addDoc(collection(db, "treinos"), {
-                    piloto: pilotoAtivo,
-                    pista: pistaAtiva.nome,
-                    voltasTotal: voltasCount,
-                    voltas: temposVoltas, // Agora salva objetos com parciais
-                    telemetria: rastroTelemetria,
-                    totalSessao: formatarTempo(Date.now() - tempoInicialSessao),
-                    data: serverTimestamp()
-                });
-                alert("Treino salvo com sucesso!");
-                window.location.href = 'index.html';
-            } catch (e) {
-                alert("Erro ao salvar dados.");
-                btn.disabled = false;
-                btn.innerText = "Tentar Novamente";
-            }
-        }
-
-        function calcularDistancia(lat1, lon1, lat2, lon2) {
-            const R = 6371;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
-
-        function formatarTempo(ms) {
-            const m = Math.floor(ms / 60000);
-            const s = ((ms % 60000) / 1000).toFixed(2);
-            return `${m}:${s.padStart(5, '0')}`;
-        }
-    </script>
-</body>
-</html>
+        const app
