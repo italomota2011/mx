@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ranking</title>
+    <title>Ranking MX4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #000; color: white; min-height: 100dvh; margin: 0; font-family: sans-serif; }
@@ -22,8 +22,6 @@
             </select>
         </div>
 
-        <div id="debugInfo" class="text-[8px] text-zinc-700 font-mono mb-4"></div>
-
         <div id="listaTreinos" class="space-y-6 max-w-3xl mx-auto pb-20">
             <div id="msgStatus" class="text-center text-zinc-500 font-bold uppercase italic text-[10px] mt-20">
                 Sincronizando...
@@ -33,7 +31,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
@@ -49,33 +47,25 @@
 
         let dadosRanking = {};
 
-        // Consulta ultra simples para evitar erros de índice
         onSnapshot(collection(db, "treinos"), (snapshot) => {
-            const debug = document.getElementById('debugInfo');
-            debug.innerText = `Docs no Banco: ${snapshot.size}`;
-
-            if (snapshot.empty) {
-                document.getElementById('msgStatus').innerText = "BANCO VAZIO OU SEM ACESSO";
-                return;
-            }
-
             dadosRanking = {};
             const pistasSet = new Set();
-            document.getElementById('msgStatus').style.display = 'none';
+            
+            if (snapshot.empty) {
+                document.getElementById('msgStatus').innerText = "NENHUM DADO ENCONTRADO";
+                return;
+            }
 
             snapshot.forEach(doc => {
                 const t = doc.data();
                 
-                // VAMOS MOSTRAR O QUE ELE ACHOU, MESMO QUE NÃO TENHA VOLTAS
-                console.log("Treino Lido:", t.pista, t.voltas);
-
-                // Se o gravar.html salvou corretamente, esses campos existem
-                if (t.pista && t.voltas) {
+                // SÓ PROCESSA SE TIVER PISTA E PELO MENOS UMA VOLTA VÁLIDA
+                if (t.pista && t.voltas && Array.isArray(t.voltas) && t.voltas.length > 0) {
                     const nomePista = t.pista.toUpperCase();
                     pistasSet.add(nomePista);
 
-                    // Pega a melhor volta
-                    const melhorVolta = Array.isArray(t.voltas) ? [...t.voltas].sort()[0] : "00:00.00";
+                    // Pega a melhor volta e garante que seja uma string
+                    const melhorVolta = [...t.voltas].sort()[0] || "99:99.99";
                     
                     let dataF = "---";
                     if (t.data) {
@@ -86,21 +76,22 @@
                     dadosRanking[nomePista].push({
                         id: doc.id,
                         piloto: t.piloto || "Piloto",
-                        tempo: melhorVolta,
+                        tempo: String(melhorVolta), // Garante que é string para o localeCompare
                         data: dataF
                     });
                 }
             });
 
             const select = document.getElementById('filtroPista');
+            const valAnterior = select.value;
             select.innerHTML = '<option value="TODAS">Todas as Pistas</option>';
             Array.from(pistasSet).sort().forEach(p => {
                 select.innerHTML += `<option value="${p}">${p}</option>`;
             });
+            select.value = valAnterior;
 
+            document.getElementById('msgStatus').style.display = 'none';
             renderizar();
-        }, (err) => {
-            document.getElementById('msgStatus').innerText = "ERRO DE PERMISSÃO: " + err.message;
         });
 
         window.renderizar = function() {
@@ -108,12 +99,17 @@
             const filtro = document.getElementById('filtroPista').value;
             container.innerHTML = '';
 
-            Object.keys(dadosRanking).forEach(pista => {
+            Object.keys(dadosRanking).sort().forEach(pista => {
                 if (filtro !== "TODAS" && filtro !== pista) return;
 
-                const items = dadosRanking[pista].sort((a, b) => a.tempo.localeCompare(b.tempo));
+                // Ordenação segura (proteção contra nulos)
+                const items = dadosRanking[pista].sort((a, b) => {
+                    const tempoA = a.tempo || "99:99.99";
+                    const tempoB = b.tempo || "99:99.99";
+                    return tempoA.localeCompare(tempoB);
+                });
 
-                let html = `<div class="card-pista rounded-[2rem] overflow-hidden mb-8">
+                let html = `<div class="card-pista rounded-[2rem] overflow-hidden mb-8 shadow-lg">
                     <div class="bg-zinc-900/60 p-4 border-b border-zinc-800">
                         <h3 class="text-xs font-black uppercase text-yellow-500 italic">${pista}</h3>
                     </div>
@@ -121,9 +117,9 @@
 
                 items.forEach((item, i) => {
                     html += `
-                        <div onclick="location.href='telemetria.html?id=${item.id}'" class="flex justify-between items-center p-4 bg-zinc-950 rounded-2xl border border-zinc-900">
+                        <div onclick="location.href='telemetria.html?id=${item.id}'" class="flex justify-between items-center p-4 bg-zinc-950 rounded-2xl border border-zinc-900 active:bg-zinc-900 cursor-pointer">
                             <div class="flex items-center gap-3">
-                                <span class="font-black italic text-zinc-800">${i+1}º</span>
+                                <span class="font-black italic ${i===0?'text-yellow-500 text-lg':'text-zinc-700 text-xs'}">${i+1}º</span>
                                 <div>
                                     <div class="font-bold uppercase italic text-zinc-100 text-[11px]">${item.piloto}</div>
                                     <div class="text-[7px] text-zinc-600 font-bold uppercase tracking-widest">${item.data}</div>
@@ -136,6 +132,10 @@
                 });
                 container.innerHTML += html + `</div></div>`;
             });
+
+            if (container.innerHTML === "") {
+                container.innerHTML = '<div class="text-center text-zinc-700 font-bold uppercase italic text-[10px] mt-20">Nenhum ranking disponível para esta pista.</div>';
+            }
         };
     </script>
 </body>
