@@ -3,68 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gravar - MX4 Timer</title>
+    <title>Gravar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { 
-            overscroll-behavior-y: contain; 
-            overflow: hidden; 
-            background-color: #000; 
-            height: 100dvh; 
-            margin: 0; 
-            color: white; 
-            font-family: sans-serif; 
-        }
-
+        body { overscroll-behavior-y: contain; overflow: hidden; background-color: #000; height: 100dvh; margin: 0; color: white; font-family: sans-serif; }
+        
         #app-container {
-            width: 100dvh;
-            height: 100vw;
-            position: absolute;
-            top: 50%;
-            left: 50%;
+            width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%) rotate(90deg);
-            display: flex;
-            flex-direction: column;
-            padding: 3vh 5vh;
-            box-sizing: border-box;
+            display: flex; flex-direction: column; padding: 2vh 5vh; box-sizing: border-box;
         }
 
         @media screen and (orientation: landscape) {
-            #app-container {
-                transform: translate(-50%, -50%) rotate(0deg);
-                width: 100vw;
-                height: 100vh;
-            }
+            #app-container { transform: translate(-50%, -50%) rotate(0deg); width: 100vw; height: 100vh; }
         }
 
-        .centro-cronometro {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: none; /* Deixa cliques passarem através do texto */
-        }
-
+        .centro-cronometro { flex: 1; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+        
         .time-sessao { 
-            font-size: 45vw; 
-            font-weight: 900; 
-            font-family: 'Courier New', Courier, monospace; 
-            color: #fff; 
-            line-height: 1;
-            letter-spacing: -5px;
+            font-size: 38vw; /* Aumentado levemente */
+            font-weight: 900; font-family: 'Courier New', Courier, monospace; 
+            color: #fff; line-height: 1; letter-spacing: -5px;
         }
 
-        /* Garante que o botão responda ao toque */
-        #btnAcao {
-            pointer-events: auto !important;
-            cursor: pointer;
-            z-index: 100;
-        }
+        #btnAcao { pointer-events: auto !important; z-index: 100; }
     </style>
 </head>
 <body>
     <div id="app-container">
-        
         <div class="w-full flex justify-between items-start">
             <div>
                 <h1 id="pistaNome" class="text-xl font-black italic uppercase text-yellow-500">---</h1>
@@ -72,7 +38,7 @@
             </div>
             <div class="text-right">
                 <div id="statusGPS" class="text-[10px] font-bold uppercase text-red-500">BUSCA GPS</div>
-                <div id="infoSetor" class="text-[9px] font-black text-zinc-400 mt-1 uppercase italic bg-zinc-900 px-3 py-1 rounded-full">STANDBY</div>
+                <div id="infoSetor" class="text-[9px] font-black text-zinc-400 mt-1 uppercase italic bg-zinc-900 px-3 py-1 rounded-full tracking-widest">STANDBY</div>
             </div>
         </div>
 
@@ -80,19 +46,19 @@
             <div id="displayTempo" class="time-sessao">00:00</div>
         </div>
 
-        <div class="w-full flex justify-between items-end">
+        <div class="w-full flex justify-between items-end pb-2">
             <div class="flex gap-10">
                 <div>
-                    <p class="text-[10px] text-zinc-500 font-bold uppercase">Voltas</p>
-                    <p id="voltas" class="text-5xl font-black italic text-white">0</p>
+                    <p class="text-[10px] text-zinc-500 font-bold uppercase leading-none">Voltas</p>
+                    <p id="voltas" class="text-5xl font-black italic">0</p>
                 </div>
                 <div>
-                    <p class="text-[10px] text-zinc-500 font-bold uppercase">Última</p>
+                    <p class="text-[10px] text-zinc-500 font-bold uppercase leading-none">Última</p>
                     <p id="ultimaVolta" class="text-5xl font-black italic text-zinc-400">--:--</p>
                 </div>
             </div>
 
-            <button id="btnAcao" onclick="toggleGravar()" class="bg-white text-black h-20 px-14 rounded-2xl font-black uppercase italic text-3xl shadow-2xl active:scale-95 transition-all">
+            <button id="btnAcao" onclick="toggleGravar()" class="bg-white text-black h-14 px-10 rounded-xl font-black uppercase italic text-xl shadow-2xl active:scale-95 transition-all">
                 Iniciar
             </button>
         </div>
@@ -100,7 +66,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBw-p_Gk...", 
@@ -122,6 +88,10 @@
         let pontoAtual = 0; 
         let temposSetoresVoltaAtual = [];
         let ultimoTimestampCorte = 0;
+        
+        // Bloqueio de 10 segundos para evitar falsos positivos no mesmo ponto
+        let lastTriggerTime = 0;
+        const TRIGGER_LOCKOUT = 10000; 
 
         const pistaAtiva = JSON.parse(localStorage.getItem('pistaAtiva'));
         const pilotoAtivo = sessionStorage.getItem('pilotoAtual');
@@ -131,36 +101,29 @@
             document.getElementById('pilotoNome').innerText = pilotoAtivo || "Piloto";
         }
 
-        // Função vinculada diretamente ao objeto window para o onclick funcionar sempre
         window.toggleGravar = function() {
-            if (!gravando) {
-                iniciar();
-            } else {
-                parar();
-            }
+            if (!gravando) { iniciar(); } else { parar(); }
         };
 
         function iniciar() {
             gravando = true;
             const btn = document.getElementById('btnAcao');
             btn.innerText = "PARAR";
-            btn.style.backgroundColor = "#dc2626"; // Vermelho
+            btn.style.backgroundColor = "#dc2626";
             btn.style.color = "white";
 
-            watchID = navigator.geolocation.watchPosition(processarPosicao, (err) => {
-                console.error(err);
-                document.getElementById('statusGPS').innerText = "ERRO GPS";
-            }, {
+            watchID = navigator.geolocation.watchPosition(processarPosicao, null, {
                 enableHighAccuracy: true,
                 maximumAge: 0,
                 timeout: 10000
             });
-
             atualizarCronometro();
         }
 
         function processarPosicao(pos) {
             const { latitude: lat, longitude: lng } = pos.coords;
+            const agora = Date.now();
+            
             document.getElementById('statusGPS').innerText = "GPS OK";
             document.getElementById('statusGPS').className = "text-[10px] font-bold uppercase text-green-500";
 
@@ -170,19 +133,23 @@
                 const dist = calcularDistancia(lat, lng, alvo.lat, alvo.lng);
                 
                 const nomesSetores = ["S4", "S1", "S2", "S3"];
-                document.getElementById('infoSetor').innerText = `${nomesSetores[pontoAtual]}`;
+                document.getElementById('infoSetor').innerText = `SETOR: ${nomesSetores[pontoAtual]}`;
 
-                if (dist < 0.025) { 
-                    const agora = Date.now();
+                // Raio de 25 metros + Verificação de Tempo de Bloqueio
+                if (dist < 0.025 && (agora - lastTriggerTime) > TRIGGER_LOCKOUT) { 
+                    lastTriggerTime = agora; // Reseta o cronômetro de bloqueio
+
                     if (alvo.tipo === "chegada") {
                         if (tempoInicioVolta > 0) {
                             const tempoTotalVolta = agora - tempoInicioVolta;
                             temposSetoresVoltaAtual.push(agora - ultimoTimestampCorte);
+                            
                             temposVoltas.push({
                                 total: formatarTempoBD(tempoTotalVolta),
                                 ms: tempoTotalVolta,
                                 setores: [...temposSetoresVoltaAtual]
                             });
+                            
                             document.getElementById('ultimaVolta').innerText = formatarTempoTela(tempoTotalVolta);
                             voltasCount++;
                             document.getElementById('voltas').innerText = voltasCount;
@@ -223,7 +190,6 @@
                 });
                 window.location.href = 'index.html';
             } catch (e) {
-                console.error(e);
                 window.location.href = 'index.html';
             }
         }
