@@ -62,4 +62,87 @@
             projectId: "mxlaptimer",
             storageBucket: "mxlaptimer.firebasestorage.app",
             messagingSenderId: "790485374192",
-            appId: "1:790485374192:web:6e18d1863f4702
+            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let gravando = false;
+        let tempoInicialSessao, intervalo, watchID;
+        let voltasCount = 0;
+        let ultimaMarcacaoVolta = 0;
+        let temposVoltas = [];
+        let rastroTelemetria = []; // NOVO: Para o mapa não ficar preto
+        
+        const pistaAtiva = JSON.parse(localStorage.getItem('pistaAtiva'));
+        const pilotoAtivo = sessionStorage.getItem('pilotoAtual') || "Piloto";
+
+        if(pistaAtiva) {
+            document.getElementById('txtPista').innerText = pistaAtiva.nome;
+            document.getElementById('txtPiloto').innerText = pilotoAtivo;
+        }
+
+        // TORNANDO A FUNÇÃO GLOBAL
+        window.alternarSessao = function() {
+            const btn = document.getElementById('btnAcao');
+            const status = document.getElementById('statusTXT');
+
+            if (!gravando) {
+                if (!pistaAtiva) return alert("Erro: Pista não encontrada.");
+                
+                gravando = true;
+                tempoInicialSessao = Date.now();
+                ultimaMarcacaoVolta = tempoInicialSessao;
+                rastroTelemetria = []; 
+                intervalo = setInterval(atualizarCronometro, 10); 
+                iniciarMonitoramentoGPS();
+                
+                btn.innerText = "Parar";
+                btn.style.backgroundColor = "#dc2626"; 
+                btn.style.borderBottomColor = "#7f1d1d";
+                status.innerText = "Gravando";
+            } else {
+                pararESalvar();
+            }
+        };
+
+        // TORNANDO A FUNÇÃO GLOBAL
+        window.encerrarSessao = function() {
+            if(confirm("Sair sem salvar?")) location.href = 'index.html';
+        };
+
+        function formatarTempo(ms) {
+            const m = String(Math.floor(ms / 60000)).padStart(2, '0');
+            const s = String(Math.floor((ms % 60000) / 1000)).padStart(2, '0');
+            const c = String(Math.floor((ms % 1000) / 10)).padStart(2, '0');
+            return `${m}:${s}.${c}`;
+        }
+
+        function atualizarCronometro() {
+            const agora = Date.now();
+            document.getElementById('timerTotal').innerText = formatarTempo(agora - tempoInicialSessao);
+        }
+
+        function iniciarMonitoramentoGPS() {
+            watchID = navigator.geolocation.watchPosition((pos) => {
+                const agora = Date.now();
+                
+                // SALVANDO PONTOS PARA O MAPA E GRÁFICO
+                rastroTelemetria.push({
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    vel: pos.coords.speed ? (pos.coords.speed * 3.6).toFixed(1) : 0,
+                    ts: agora - tempoInicialSessao
+                });
+
+                const dist = calcularDistancia(pos.coords.latitude, pos.coords.longitude, pistaAtiva.lat, pistaAtiva.lng);
+                if (dist < 0.025) { 
+                    const tempoDesdeUltimaVolta = agora - ultimaMarcacaoVolta;
+                    if (tempoDesdeUltimaVolta > 15000) { 
+                        temposVoltas.push(formatarTempo(tempoDesdeUltimaVolta));
+                        voltasCount++;
+                        document.getElementById('contagemVoltas').innerText = voltasCount;
+                        ultimaMarcacaoVolta = agora;
+                    }
+                }
