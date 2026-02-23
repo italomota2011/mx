@@ -3,89 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mapear</title>
+    <title>Mapear Pista</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        .container { width: 90%; max-width: 400px; text-align: center; background: #111; padding: 20px; border-radius: 20px; border: 1px solid #333; }
-        input { width: 100%; padding: 15px; margin-bottom: 20px; border-radius: 10px; border: none; background: #222; color: #fff; text-align: center; box-sizing: border-box; }
-        .btn { width: 100%; padding: 20px; margin: 5px 0; border: none; border-radius: 15px; font-weight: bold; text-transform: uppercase; cursor: pointer; }
-        .btn-cap { background: #ea580c; color: white; border-bottom: 4px solid #9a3412; }
-        .btn-sav { background: #facc15; color: black; border-bottom: 4px solid #a16207; }
-        .btn-back { background: none; color: #555; font-size: 12px; margin-top: 10px; }
-        #status { font-size: 10px; color: #888; margin: 15px 0; text-transform: uppercase; }
-        .dot { height: 10px; width: 10px; background: red; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        body { background: #000; color: #fff; font-family: sans-serif; height: 100dvh; display: flex; align-items: center; justify-content: center; }
+        .btn-map { background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%); border-bottom: 4px solid #1e3a8a; }
     </style>
 </head>
-<body>
-<div class="container">
-    <h2 style="font-style: italic; font-weight: 900;">MAPEAR PISTA</h2>
-    <input type="text" id="pistaNome" placeholder="NOME DO TRAÇADO">
-    <div id="status">
-        <span id="dot" class="dot"></span> <span id="txt">GPS Desconectado</span>
+<body class="p-6">
+    <div class="w-full max-w-md space-y-6 text-center">
+        <h1 class="text-2xl font-black italic uppercase tracking-tighter">Mapear <span class="text-blue-500">Pista</span></h1>
+        
+        <input type="text" id="nomePista" placeholder="NOME DA PISTA (Ex: CT MX4)" class="w-full p-4 rounded-2xl bg-zinc-900 border border-zinc-800 text-center font-bold uppercase outline-none focus:border-blue-500">
+        
+        <div id="statusGPS" class="text-[10px] font-bold uppercase text-zinc-500 italic">Aguardando sinal de GPS...</div>
+
+        <button id="btnMapear" onclick="capturarPonto()" class="btn-map w-full py-6 rounded-3xl font-black uppercase italic text-xl active:scale-95 transition-all">Marcar Linha de Meta</button>
+        
+        <a href="index.html" class="block text-zinc-600 font-bold uppercase text-xs mt-4 italic">← Voltar ao Menu</a>
     </div>
-    <button class="btn btn-cap" id="cap">Capturar Ponto</button>
-    <button class="btn btn-sav" id="sav">Salvar Pista</button>
-    <button class="btn btn-back" onclick="window.location.href='index.html'">Voltar ao Menu</button>
-</div>
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
-        authDomain: "mxlaptimer.firebaseapp.com",
-        projectId: "mxlaptimer",
-        storageBucket: "mxlaptimer.firebasestorage.app",
-        messagingSenderId: "790485374192",
-        appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
-    };
+        const firebaseConfig = {
+            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
+            authDomain: "mxlaptimer.firebaseapp.com",
+            projectId: "mxlaptimer",
+            storageBucket: "mxlaptimer.firebasestorage.app",
+            messagingSenderId: "790485374192",
+            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
+        };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        enableIndexedDbPersistence(db).catch(() => console.log("Offline Ativo"));
 
-    var ponto = null;
+        let lat, lng;
 
-    document.getElementById('cap').addEventListener('click', function() {
-        var txt = document.getElementById('txt');
-        var dot = document.getElementById('dot');
-        txt.innerText = "Buscando...";
-        dot.style.background = "yellow";
+        navigator.geolocation.watchPosition((pos) => {
+            lat = pos.coords.latitude;
+            lng = pos.coords.longitude;
+            document.getElementById('statusGPS').innerText = `GPS OK: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            document.getElementById('statusGPS').classList.replace('text-zinc-500', 'text-green-500');
+        }, null, { enableHighAccuracy: true });
 
-        navigator.geolocation.getCurrentPosition(function(pos) {
-            ponto = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            dot.style.background = "#22c55e";
-            txt.innerText = "Ponto Fixado!";
-            alert("Localização capturada!");
-        }, function(err) {
-            dot.style.background = "red";
-            txt.innerText = "Erro no GPS";
-            alert("Erro GPS: " + err.message);
-        }, { enableHighAccuracy: true, timeout: 10000 });
-    });
+        window.capturarPonto = async function() {
+            const nome = document.getElementById('nomePista').value;
+            if(!nome) return alert("Digita o nome da pista!");
+            if(!lat) return alert("Aguardando sinal de GPS...");
 
-    document.getElementById('sav').addEventListener('click', async function() {
-        var nome = document.getElementById('pistaNome').value;
-        if (!nome || !ponto) { alert("Complete o mapeamento!"); return; }
-
-        this.disabled = true;
-        this.innerText = "Enviando...";
-
-        try {
-            await addDoc(collection(db, "pistas"), {
-                nome: nome,
-                lat: ponto.lat,
-                lng: ponto.lng,
-                criadoEm: new Date()
-            });
-            alert("Pista salva na nuvem com sucesso!");
-            window.location.href = 'index.html';
-        } catch (e) {
-            alert("Erro ao salvar no banco de dados.");
-            this.disabled = false;
-            this.innerText = "Salvar Pista";
-        }
-    });
-</script>
+            try {
+                await addDoc(collection(db, "pistas"), { nome, lat, lng });
+                alert("Pista guardada com sucesso!");
+                location.href = 'index.html';
+            } catch (e) {
+                alert("Guardado localmente (Offline).");
+                location.href = 'index.html';
+            }
+        };
+    </script>
 </body>
 </html>
