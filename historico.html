@@ -11,24 +11,22 @@
             #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
         }
         .card-pista { background: linear-gradient(180deg, #111 0%, #000 100%); border: 1px solid #222; }
-        select { -webkit-appearance: none; appearance: none; }
     </style>
 </head>
 <body>
     <div id="app-container" class="p-6">
         <div class="flex justify-between items-center mb-6">
             <a href="index.html" class="text-zinc-500 font-bold uppercase text-[10px] border border-zinc-900 px-4 py-2 rounded-xl">← Menu</a>
-            <div class="relative">
-                <select id="filtroPista" onchange="renderizar()" class="bg-zinc-900 text-white font-bold text-[10px] py-2 px-6 rounded-xl border border-zinc-800 outline-none uppercase pr-8">
-                    <option value="TODAS">Todas as Pistas</option>
-                </select>
-                <div class="absolute right-2 top-2.5 pointer-events-none text-zinc-600 text-[8px]">▼</div>
-            </div>
+            <select id="filtroPista" onchange="renderizar()" class="bg-zinc-900 text-white font-bold text-[10px] py-2 px-4 rounded-xl border border-zinc-800 outline-none uppercase">
+                <option value="TODAS">Todas as Pistas</option>
+            </select>
         </div>
+
+        <div id="debugInfo" class="text-[8px] text-zinc-700 font-mono mb-4"></div>
 
         <div id="listaTreinos" class="space-y-6 max-w-3xl mx-auto pb-20">
             <div id="msgStatus" class="text-center text-zinc-500 font-bold uppercase italic text-[10px] mt-20">
-                Aguardando dados...
+                Sincronizando...
             </div>
         </div>
     </div>
@@ -47,4 +45,98 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const db = get
+        const db = getFirestore(app);
+
+        let dadosRanking = {};
+
+        // Consulta ultra simples para evitar erros de índice
+        onSnapshot(collection(db, "treinos"), (snapshot) => {
+            const debug = document.getElementById('debugInfo');
+            debug.innerText = `Docs no Banco: ${snapshot.size}`;
+
+            if (snapshot.empty) {
+                document.getElementById('msgStatus').innerText = "BANCO VAZIO OU SEM ACESSO";
+                return;
+            }
+
+            dadosRanking = {};
+            const pistasSet = new Set();
+            document.getElementById('msgStatus').style.display = 'none';
+
+            snapshot.forEach(doc => {
+                const t = doc.data();
+                
+                // VAMOS MOSTRAR O QUE ELE ACHOU, MESMO QUE NÃO TENHA VOLTAS
+                console.log("Treino Lido:", t.pista, t.voltas);
+
+                // Se o gravar.html salvou corretamente, esses campos existem
+                if (t.pista && t.voltas) {
+                    const nomePista = t.pista.toUpperCase();
+                    pistasSet.add(nomePista);
+
+                    // Pega a melhor volta
+                    const melhorVolta = Array.isArray(t.voltas) ? [...t.voltas].sort()[0] : "00:00.00";
+                    
+                    let dataF = "---";
+                    if (t.data) {
+                        try { dataF = t.data.toDate().toLocaleDateString('pt-BR'); } catch(e) { dataF = "Recente"; }
+                    }
+
+                    if (!dadosRanking[nomePista]) dadosRanking[nomePista] = [];
+                    dadosRanking[nomePista].push({
+                        id: doc.id,
+                        piloto: t.piloto || "Piloto",
+                        tempo: melhorVolta,
+                        data: dataF
+                    });
+                }
+            });
+
+            const select = document.getElementById('filtroPista');
+            select.innerHTML = '<option value="TODAS">Todas as Pistas</option>';
+            Array.from(pistasSet).sort().forEach(p => {
+                select.innerHTML += `<option value="${p}">${p}</option>`;
+            });
+
+            renderizar();
+        }, (err) => {
+            document.getElementById('msgStatus').innerText = "ERRO DE PERMISSÃO: " + err.message;
+        });
+
+        window.renderizar = function() {
+            const container = document.getElementById('listaTreinos');
+            const filtro = document.getElementById('filtroPista').value;
+            container.innerHTML = '';
+
+            Object.keys(dadosRanking).forEach(pista => {
+                if (filtro !== "TODAS" && filtro !== pista) return;
+
+                const items = dadosRanking[pista].sort((a, b) => a.tempo.localeCompare(b.tempo));
+
+                let html = `<div class="card-pista rounded-[2rem] overflow-hidden mb-8">
+                    <div class="bg-zinc-900/60 p-4 border-b border-zinc-800">
+                        <h3 class="text-xs font-black uppercase text-yellow-500 italic">${pista}</h3>
+                    </div>
+                    <div class="p-2 space-y-1">`;
+
+                items.forEach((item, i) => {
+                    html += `
+                        <div onclick="location.href='telemetria.html?id=${item.id}'" class="flex justify-between items-center p-4 bg-zinc-950 rounded-2xl border border-zinc-900">
+                            <div class="flex items-center gap-3">
+                                <span class="font-black italic text-zinc-800">${i+1}º</span>
+                                <div>
+                                    <div class="font-bold uppercase italic text-zinc-100 text-[11px]">${item.piloto}</div>
+                                    <div class="text-[7px] text-zinc-600 font-bold uppercase tracking-widest">${item.data}</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-lg font-black font-mono text-white italic">${item.tempo}</div>
+                            </div>
+                        </div>`;
+                });
+                container.innerHTML += html + `</div></div>`;
+            });
+        };
+    </script>
+</body>
+</html>
