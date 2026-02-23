@@ -3,189 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gravar</title>
+    <title>MX4 - Gravar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #000; height: 100dvh; margin: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; color: white; }
-        @media screen and (orientation: portrait) {
-            #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
-        }
-        /* Ajuste no tamanho da fonte para não quebrar o layout */
-        .time-sessao { 
-            font-size: 35vw; 
-            font-weight: 900; 
-            font-family: monospace; 
-            line-height: 1; 
-            color: #fff;
-            letter-spacing: -2px;
-        }
+        body { background: #000; color: #fff; font-family: sans-serif; height: 100dvh; overflow: hidden; }
+        .lcd { font-family: monospace; text-shadow: 0 0 20px rgba(34, 197, 94, 0.5); }
+        .btn-stop { background: #dc2626; border-bottom: 4px solid #7f1d1d; }
     </style>
 </head>
-<body>
-    <div id="app-container" class="w-full h-full flex flex-col items-center justify-between p-4">
-        
-        <div class="w-full flex justify-between items-center">
-            <button onclick="encerrarSessao()" class="text-zinc-600 font-bold uppercase text-[10px] border border-zinc-800 px-4 py-2 rounded-xl italic">← Voltar</button>
-            <div class="text-zinc-500 font-black italic text-[10px] uppercase tracking-tighter text-right leading-none">
-                <span id="txtPista">...</span><br>
-                <span id="txtPiloto" class="text-yellow-400">...</span>
-            </div>
+<body class="flex flex-col items-center justify-center p-4">
+    
+    <div class="text-center mb-8">
+        <div id="pistaNome" class="text-zinc-500 font-bold uppercase italic text-xs tracking-widest mb-1">---</div>
+        <div id="statusGPS" class="text-[9px] text-orange-500 font-black uppercase">Aguardando GPS...</div>
+    </div>
+
+    <div class="lcd text-6xl font-black mb-2 text-green-500" id="cronometro">00:00.00</div>
+    <div class="text-zinc-600 font-bold text-xs uppercase italic mb-8">Tempo Atual</div>
+
+    <div class="grid grid-cols-2 gap-4 w-full max-w-sm mb-8">
+        <div class="bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800 text-center">
+            <div class="text-[8px] text-zinc-500 font-bold uppercase mb-1">Melhor Volta</div>
+            <div id="melhorVolta" class="text-xl font-black">--:--.--</div>
         </div>
-
-        <div class="flex-1 flex items-center justify-center">
-            <div id="timerTotal" class="time-sessao">00:00.00</div>
-        </div>
-
-        <div class="w-full grid grid-cols-3 gap-4 items-center mb-2">
-            <div class="bg-zinc-950 p-4 rounded-3xl border border-zinc-900 text-center">
-                <div class="text-[9px] text-zinc-600 font-bold uppercase italic mb-1">Voltas</div>
-                <div id="contagemVoltas" class="text-3xl font-black italic text-white">0</div>
-            </div>
-
-            <button id="btnAcao" onclick="alternarSessao()" class="bg-green-600 text-white font-black py-6 rounded-3xl uppercase text-xl border-b-4 border-green-900 active:scale-95 transition-all">
-                Iniciar
-            </button>
-
-            <div class="bg-zinc-950 p-4 rounded-3xl border border-zinc-900 text-center">
-                <div class="text-[9px] text-zinc-600 font-bold uppercase italic mb-1 leading-tight">Status</div>
-                <div id="statusTXT" class="text-[10px] font-black italic text-zinc-500 uppercase">Pronto</div>
-            </div>
+        <div class="bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800 text-center">
+            <div class="text-[8px] text-zinc-500 font-bold uppercase mb-1">Volta Atual</div>
+            <div id="numVolta" class="text-xl font-black">1</div>
         </div>
     </div>
+
+    <button id="btnParar" class="btn-stop w-full max-w-xs py-5 rounded-2xl font-black uppercase italic tracking-tighter active:scale-95 transition-all">Parar e Salvar</button>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
-            authDomain: "mxlaptimer.firebaseapp.com",
-            projectId: "mxlaptimer",
-            storageBucket: "mxlaptimer.firebasestorage.app",
-            messagingSenderId: "790485374192",
-            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        let gravando = false;
-        let tempoInicialSessao, intervalo, watchID;
-        let voltasCount = 0;
-        let ultimaMarcacaoVolta = 0;
-        let temposVoltas = [];
-        
-        const pistaAtiva = JSON.parse(localStorage.getItem('pistaAtiva'));
-        const pilotoAtivo = sessionStorage.getItem('pilotoAtual') || "Piloto";
-
-        if(pistaAtiva) {
-            document.getElementById('txtPista').innerText = pistaAtiva.nome;
-            document.getElementById('txtPiloto').innerText = pilotoAtivo;
-        }
-
-        window.alternarSessao = function() {
-            const btn = document.getElementById('btnAcao');
-            const status = document.getElementById('statusTXT');
-
-            if (!gravando) {
-                if (!pistaAtiva) return alert("Erro: Pista não encontrada.");
-                
-                gravando = true;
-                tempoInicialSessao = Date.now();
-                ultimaMarcacaoVolta = tempoInicialSessao;
-                intervalo = setInterval(atualizarCronometro, 10); 
-                iniciarMonitoramentoGPS();
-                
-                btn.innerText = "Parar";
-                btn.style.backgroundColor = "#dc2626"; 
-                btn.style.borderBottomColor = "#7f1d1d";
-                status.innerText = "Gravando";
-                status.classList.replace('text-zinc-500', 'text-green-500');
-            } else {
-                pararESalvar();
-            }
-        };
-
-        function formatarTempo(ms) {
-            const m = String(Math.floor(ms / 60000)).padStart(2, '0');
-            const s = String(Math.floor((ms % 60000) / 1000)).padStart(2, '0');
-            const c = String(Math.floor((ms % 1000) / 10)).padStart(2, '0');
-            return `${m}:${s}.${c}`;
-        }
-
-        function atualizarCronometro() {
-            const agora = Date.now();
-            const diff = agora - tempoInicialSessao;
-            document.getElementById('timerTotal').innerText = formatarTempo(diff);
-        }
-
-        function iniciarMonitoramentoGPS() {
-            if ("geolocation" in navigator) {
-                watchID = navigator.geolocation.watchPosition((pos) => {
-                    const dist = calcularDistancia(
-                        pos.coords.latitude, pos.coords.longitude,
-                        pistaAtiva.lat, pistaAtiva.lng
-                    );
-
-                    if (dist < 0.025) { 
-                        const agora = Date.now();
-                        const tempoDesdeUltimaVolta = agora - ultimaMarcacaoVolta;
-
-                        if (tempoDesdeUltimaVolta > 15000) { 
-                            const tempoDaVolta = formatarTempo(tempoDesdeUltimaVolta);
-                            temposVoltas.push(tempoDaVolta);
-                            
-                            voltasCount++;
-                            document.getElementById('contagemVoltas').innerText = voltasCount;
-                            document.getElementById('statusTXT').innerText = "Última: " + tempoDaVolta;
-                            
-                            ultimaMarcacaoVolta = agora;
-                        }
-                    }
-                }, null, { enableHighAccuracy: true });
-            }
-        }
-
-        async function pararESalvar() {
-            clearInterval(intervalo);
-            if (watchID) navigator.geolocation.clearWatch(watchID);
-            
-            const btn = document.getElementById('btnAcao');
-            btn.disabled = true;
-            btn.innerText = "Salvando...";
-
-            try {
-                await addDoc(collection(db, "treinos"), {
-                    piloto: pilotoAtivo,
-                    pista: pistaAtiva.nome,
-                    voltasTotal: voltasCount,
-                    voltas: temposVoltas,
-                    totalSessao: document.getElementById('timerTotal').innerText,
-                    data: serverTimestamp()
-                });
-                alert("Treino salvo!");
-                location.href = 'index.html';
-            } catch (e) {
-                alert("Erro ao salvar.");
-                btn.disabled = false;
-                btn.innerText = "Parar";
-            }
-        }
-
-        function calcularDistancia(lat1, lon1, lat2, lon2) {
-            const R = 6371;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
-
-        window.encerrarSessao = () => {
-            if(confirm("Sair sem salvar?")) location.href = 'index.html';
-        };
-    </script>
-</body>
-</html>
-
-
