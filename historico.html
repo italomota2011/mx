@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ranking</title>
+    <title>Ranking MX4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #000; color: white; min-height: 100dvh; margin: 0; font-family: sans-serif; overflow-x: hidden; }
@@ -14,17 +14,29 @@
         .row-ranking:nth-child(1) .posicao { color: #fbbf24; font-size: 1.5rem; }
         .row-ranking:nth-child(2) .posicao { color: #94a3b8; }
         .row-ranking:nth-child(3) .posicao { color: #92400e; }
+        
+        /* Estilo para o filtro */
+        .filtro-pista { background: #111; border: 1px solid #333; color: #fff; padding: 10px 20px; border-radius: 15px; font-weight: bold; text-transform: uppercase; font-size: 12px; outline: none; cursor: pointer; }
     </style>
 </head>
 <body>
     <div id="app-container" class="p-6">
-        <div class="flex justify-between items-center mb-10">
-            <a href="index.html" class="text-zinc-500 font-bold uppercase text-[10px] italic border border-zinc-900 px-4 py-2 rounded-xl">← Voltar</a>
-            <h1 class="text-3xl font-black italic uppercase tracking-tighter text-white">Hall <span class="text-yellow-500">of Fame</span></h1>
+        <div class="flex flex-col gap-6 mb-8">
+            <div class="flex justify-between items-center">
+                <a href="index.html" class="text-zinc-500 font-bold uppercase text-[10px] italic border border-zinc-900 px-4 py-2 rounded-xl">← Voltar</a>
+                <h1 class="text-2xl font-black italic uppercase tracking-tighter text-white text-right">Hall <span class="text-yellow-500">of Fame</span></h1>
+            </div>
+            
+            <div class="flex items-center justify-center gap-3">
+                <span class="text-[9px] font-black text-zinc-600 uppercase italic">Filtrar:</span>
+                <select id="filtroPista" onchange="filtrarRanking()" class="filtro-pista flex-1 max-w-[250px]">
+                    <option value="TODAS">TODAS AS PISTAS</option>
+                </select>
+            </div>
         </div>
 
         <div id="listaTreinos" class="space-y-8 max-w-2xl mx-auto pb-20">
-            <div class="text-center text-zinc-700 animate-pulse font-bold uppercase italic text-xs">Carregando tempos oficiais...</div>
+            <div class="text-center text-zinc-700 animate-pulse font-bold uppercase italic text-xs">Buscando dados no Firebase...</div>
         </div>
     </div>
 
@@ -34,71 +46,3 @@
 
         const firebaseConfig = {
             apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
-            authDomain: "mxlaptimer.firebaseapp.com",
-            projectId: "mxlaptimer",
-            storageBucket: "mxlaptimer.firebasestorage.app",
-            messagingSenderId: "790485374192",
-            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        const treinosRef = collection(db, "treinos");
-        const q = query(treinosRef);
-
-        onSnapshot(q, (snapshot) => {
-            const dadosPorPista = {};
-
-            snapshot.forEach((doc) => {
-                const treino = doc.data();
-                if (!treino.voltas || treino.voltas.length === 0) return;
-
-                const melhorVolta = treino.voltas.sort()[0];
-
-                if (!dadosPorPista[treino.pista]) {
-                    dadosPorPista[treino.pista] = {};
-                }
-
-                if (!dadosPorPista[treino.pista][treino.piloto] || melhorVolta < dadosPorPista[treino.pista][treino.piloto]) {
-                    dadosPorPista[treino.pista][treino.piloto] = melhorVolta;
-                }
-            });
-
-            const container = document.getElementById('listaTreinos');
-            container.innerHTML = '';
-
-            for (const nomePista in dadosPorPista) {
-                const rankingOrdenado = Object.entries(dadosPorPista[nomePista])
-                    .sort((a, b) => a[1].localeCompare(b[1]));
-
-                let htmlPista = `
-                    <div class="card-pista rounded-[2.5rem] overflow-hidden shadow-2xl">
-                        <div class="bg-zinc-900/50 p-6 border-b border-zinc-800">
-                            <h3 class="text-2xl font-black italic uppercase text-yellow-400 tracking-tighter">${nomePista}</h3>
-                        </div>
-                        <div class="p-4 space-y-2">
-                `;
-
-                rankingOrdenado.forEach(([piloto, tempo], index) => {
-                    htmlPista += `
-                        <div class="row-ranking flex justify-between items-center p-4 bg-zinc-900/30 rounded-2xl border border-transparent hover:border-zinc-800 transition-all">
-                            <div class="flex items-center gap-4">
-                                <span class="posicao font-black italic w-6">${index + 1}º</span>
-                                <span class="text-lg font-bold uppercase italic tracking-tight text-zinc-200">${piloto}</span>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-[8px] text-zinc-600 font-bold uppercase italic">Best Lap</div>
-                                <div class="text-xl font-black font-mono text-white">${tempo}</div>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                htmlPista += `</div></div>`;
-                container.innerHTML += htmlPista;
-            }
-        });
-    </script>
-</body>
-</html>
