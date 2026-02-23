@@ -11,7 +11,7 @@
             #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
         }
         .time-sessao { 
-            font-size: 35vw; 
+            font-size: 45vw; 
             font-weight: 900; 
             font-family: monospace; 
             line-height: 1; 
@@ -73,7 +73,7 @@
         let voltasCount = 0;
         let ultimaMarcacaoVolta = 0;
         let temposVoltas = [];
-        let rastroTelemetria = []; // NOVO: Para o mapa não ficar preto
+        let rastroTelemetria = []; // <--- NOVO: Essencial para o mapa não ficar preto
         
         const pistaAtiva = JSON.parse(localStorage.getItem('pistaAtiva'));
         const pilotoAtivo = sessionStorage.getItem('pilotoAtual') || "Piloto";
@@ -83,7 +83,7 @@
             document.getElementById('txtPiloto').innerText = pilotoAtivo;
         }
 
-        // TORNANDO A FUNÇÃO GLOBAL
+        // AGORA A FUNÇÃO É DEFINIDA NO WINDOW PARA SER VISÍVEL AO CLIQUE
         window.alternarSessao = function() {
             const btn = document.getElementById('btnAcao');
             const status = document.getElementById('statusTXT');
@@ -99,18 +99,24 @@
                 iniciarMonitoramentoGPS();
                 
                 btn.innerText = "Parar";
-                btn.style.backgroundColor = "#dc2626"; 
-                btn.style.borderBottomColor = "#7f1d1d";
+                btn.classList.remove('bg-green-600', 'border-green-900');
+                btn.classList.add('bg-red-600', 'border-red-900');
                 status.innerText = "Gravando";
             } else {
                 pararESalvar();
             }
         };
 
-        // TORNANDO A FUNÇÃO GLOBAL
         window.encerrarSessao = function() {
-            if(confirm("Sair sem salvar?")) location.href = 'index.html';
+            if(confirm("Deseja sair do treino?")) {
+                window.location.href = 'index.html';
+            }
         };
+
+        function atualizarCronometro() {
+            const agora = Date.now();
+            document.getElementById('timerTotal').innerText = formatarTempo(agora - tempoInicialSessao);
+        }
 
         function formatarTempo(ms) {
             const m = String(Math.floor(ms / 60000)).padStart(2, '0');
@@ -119,16 +125,11 @@
             return `${m}:${s}.${c}`;
         }
 
-        function atualizarCronometro() {
-            const agora = Date.now();
-            document.getElementById('timerTotal').innerText = formatarTempo(agora - tempoInicialSessao);
-        }
-
         function iniciarMonitoramentoGPS() {
             watchID = navigator.geolocation.watchPosition((pos) => {
                 const agora = Date.now();
                 
-                // SALVANDO PONTOS PARA O MAPA E GRÁFICO
+                // GRAVAÇÃO DO RASTRO PARA O MAPA
                 rastroTelemetria.push({
                     lat: pos.coords.latitude,
                     lng: pos.coords.longitude,
@@ -146,3 +147,44 @@
                         ultimaMarcacaoVolta = agora;
                     }
                 }
+            }, null, { enableHighAccuracy: true });
+        }
+
+        async function pararESalvar() {
+            clearInterval(intervalo);
+            if (watchID) navigator.geolocation.clearWatch(watchID);
+            
+            const btn = document.getElementById('btnAcao');
+            btn.disabled = true;
+            btn.innerText = "Salvando...";
+
+            try {
+                await addDoc(collection(db, "treinos"), {
+                    piloto: pilotoAtivo,
+                    pista: pistaAtiva.nome,
+                    voltasTotal: voltasCount,
+                    voltas: temposVoltas,
+                    telemetria: rastroTelemetria, // ENVIA O RASTRO PARA O FIREBASE
+                    totalSessao: document.getElementById('timerTotal').innerText,
+                    data: serverTimestamp()
+                });
+                alert("Treino gravado com sucesso!"); // MENSAGEM QUE PEDISTE
+                window.location.href = 'index.html';
+            } catch (e) {
+                alert("Erro ao salvar.");
+                btn.disabled = false;
+                btn.innerText = "Parar";
+            }
+        }
+
+        function calcularDistancia(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+    </script>
+</body>
+</html>
