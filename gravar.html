@@ -6,69 +6,67 @@
     <title>Gravar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { overscroll-behavior-y: contain; overflow: hidden; background-color: #000; height: 100dvh; margin: 0; color: white; font-family: sans-serif; }
-        
-        #app-container {
-            width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%) rotate(90deg);
-            display: flex; flex-direction: column; padding: 2vh 4vh; box-sizing: border-box;
+        /* Removendo a lógica complexa de rotação que trava o touch */
+        body { 
+            background-color: #000; 
+            margin: 0; 
+            color: white; 
+            font-family: sans-serif; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column;
+            overflow: hidden;
         }
 
-        @media screen and (orientation: landscape) {
-            #app-container { transform: translate(-50%, -50%) rotate(0deg); width: 100vw; height: 100vh; }
-        }
-
-        .centro-cronometro { 
-            flex: 1; display: flex; align-items: center; justify-content: center; 
-            min-height: 0; pointer-events: none; /* Cliques passam pelo centro */
-        }
-        
         .time-sessao { 
-            font-size: 50vw; font-weight: 900; font-family: 'Courier New', Courier, monospace; 
-            color: #fff; line-height: 1; letter-spacing: -5px;
+            font-size: 50vw; 
+            font-weight: 900; 
+            font-family: 'Courier New', Courier, monospace; 
+            letter-spacing: -2px;
+            line-height: 1;
         }
 
-        .rodape-infos {
-            height: 25vh; display: flex; justify-content: space-between;
-            align-items: center; width: 100%; position: relative; z-index: 999;
+        /* Área de toque garantida */
+        #btnAcao {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            position: relative;
+            z-index: 9999;
         }
-
-        #btnAcao { pointer-events: auto !important; cursor: pointer; }
     </style>
 </head>
-<body>
-    <div id="app-container">
-        <div class="w-full flex justify-between items-start h-[10vh]">
+<body class="p-4 flex flex-col justify-between">
+    
+    <div class="flex justify-between items-start">
+        <div>
+            <h1 id="pistaNome" class="text-xl font-black italic uppercase text-yellow-500">---</h1>
+            <p id="pilotoNome" class="text-[10px] font-bold uppercase text-zinc-500">PILOTO</p>
+        </div>
+        <div class="text-right">
+            <div id="statusGPS" class="text-[10px] font-bold uppercase text-red-500">BUSCA GPS</div>
+            <div id="infoSetor" class="text-[9px] font-black text-zinc-400 mt-1 uppercase italic bg-zinc-900 px-3 py-1 rounded-full">STANDBY</div>
+        </div>
+    </div>
+
+    <div class="flex-1 flex items-center justify-center">
+        <div id="displayTempo" class="time-sessao">00:00</div>
+    </div>
+
+    <div class="flex justify-between items-end pb-4">
+        <div class="flex gap-8">
             <div>
-                <h1 id="pistaNome" class="text-lg font-black italic uppercase text-yellow-500">---</h1>
-                <p id="pilotoNome" class="text-[10px] font-bold uppercase text-zinc-500">PILOTO</p>
+                <p class="text-[10px] text-zinc-500 font-bold uppercase">Voltas</p>
+                <p id="voltas" class="text-5xl font-black italic">0</p>
             </div>
-            <div class="text-right">
-                <div id="statusGPS" class="text-[10px] font-bold uppercase text-red-500">BUSCA GPS</div>
-                <div id="infoSetor" class="text-[9px] font-black text-zinc-400 mt-1 uppercase italic bg-zinc-900 px-3 py-1 rounded-full">STANDBY</div>
+            <div>
+                <p class="text-[10px] text-zinc-500 font-bold uppercase">Última</p>
+                <p id="ultimaVolta" class="text-5xl font-black italic text-zinc-400">--:--</p>
             </div>
         </div>
 
-        <div class="centro-cronometro">
-            <div id="displayTempo" class="time-sessao">00:00</div>
-        </div>
-
-        <div class="rodape-infos">
-            <div class="flex gap-10">
-                <div class="text-left">
-                    <p class="text-[10px] text-zinc-500 font-bold uppercase">Voltas</p>
-                    <p id="voltas" class="text-5xl font-black italic text-white leading-none">0</p>
-                </div>
-                <div class="text-left">
-                    <p class="text-[10px] text-zinc-500 font-bold uppercase">Última</p>
-                    <p id="ultimaVolta" class="text-5xl font-black italic text-zinc-400 leading-none">--:--</p>
-                </div>
-            </div>
-
-            <button id="btnAcao" class="bg-green-600 text-white h-16 px-12 rounded-2xl font-black uppercase italic text-2xl shadow-2xl active:scale-95 transition-all">
-                Iniciar
-            </button>
-        </div>
+        <button id="btnAcao" class="bg-green-600 text-white h-16 px-10 rounded-2xl font-black uppercase italic text-xl shadow-2xl active:scale-90 transition-transform">
+            Iniciar
+        </button>
     </div>
 
     <script type="module">
@@ -106,24 +104,29 @@
             document.getElementById('pilotoNome').innerText = pilotoAtivo || "Piloto";
         }
 
-        // NOVO: Escutador de clique robusto
-        const btnAcao = document.getElementById('btnAcao');
-        btnAcao.addEventListener('click', () => {
+        const btn = document.getElementById('btnAcao');
+
+        // FUNÇÃO DE TOQUE REESCRITA
+        function gerenciarClique(e) {
+            e.preventDefault();
+            console.log("Botão clicado!"); // Verifique no console se isso aparece
             if (!gravando) {
                 iniciar();
             } else {
                 parar();
             }
-        });
+        }
+
+        // Adicionando suporte para clique e toque (touchstart é mais rápido no mobile)
+        btn.addEventListener('touchstart', gerenciarClique);
+        btn.addEventListener('click', gerenciarClique);
 
         function iniciar() {
             gravando = true;
-            btnAcao.innerText = "PARAR";
-            btnAcao.classList.replace('bg-green-600', 'bg-red-600');
+            btn.innerText = "PARAR";
+            btn.classList.replace('bg-green-600', 'bg-red-600');
 
-            watchID = navigator.geolocation.watchPosition(processarPosicao, (err) => {
-                console.error("GPS Error:", err);
-            }, {
+            watchID = navigator.geolocation.watchPosition(processarPosicao, null, {
                 enableHighAccuracy: true,
                 maximumAge: 0,
                 timeout: 10000
@@ -135,15 +138,14 @@
             const { latitude: lat, longitude: lng } = pos.coords;
             const agora = Date.now();
             document.getElementById('statusGPS').innerText = "GPS OK";
-            document.getElementById('statusGPS').classList.replace('text-red-500', 'text-green-500');
+            document.getElementById('statusGPS').className = "text-[10px] font-bold uppercase text-green-500";
 
             if (gravando) {
                 const pontosPista = pistaAtiva.checkpoints || [{ lat: pistaAtiva.lat, lng: pistaAtiva.lng, tipo: "chegada" }];
                 const alvo = pontosPista[pontoAtual];
                 const dist = calcularDistancia(lat, lng, alvo.lat, alvo.lng);
                 
-                const nomesSetores = ["S4", "S1", "S2", "S3"];
-                document.getElementById('infoSetor').innerText = `${nomesSetores[pontoAtual]}`;
+                document.getElementById('infoSetor').innerText = `SETOR: ${pontoAtual + 1}`;
 
                 if (dist < 0.025 && (agora - lastTriggerTime) > TRIGGER_LOCKOUT) { 
                     lastTriggerTime = agora;
@@ -168,3 +170,63 @@
                         temposSetoresVoltaAtual.push(agora - ultimoTimestampCorte);
                         ultimoTimestampCorte = agora;
                         pontoAtual = (pontoAtual + 1) % pontosPista.length;
+                    }
+                }
+            }
+        }
+
+        function atualizarCronometro() {
+            if (!gravando) return;
+            if (tempoInicioVolta > 0) {
+                const diff = Date.now() - tempoInicioVolta;
+                document.getElementById('displayTempo').innerText = formatarTempoTela(diff);
+            }
+            requestAnimationFrame(atualizarCronometro);
+        }
+
+        async function parar() {
+            gravando = false;
+            if (watchID) navigator.geolocation.clearWatch(watchID);
+            
+            btn.disabled = true;
+            btn.innerText = "SALVANDO...";
+            btn.classList.replace('bg-red-600', 'bg-zinc-700');
+
+            try {
+                await addDoc(collection(db, "treinos"), {
+                    piloto: pilotoAtivo,
+                    pista: pistaAtiva.nome,
+                    voltasTotal: voltasCount,
+                    voltas: temposVoltas,
+                    data: serverTimestamp()
+                });
+                btn.innerText = "DADOS SALVOS!";
+                btn.style.backgroundColor = "#2563eb"; 
+                setTimeout(() => { window.location.href = 'index.html'; }, 1500);
+            } catch (e) {
+                window.location.href = 'index.html';
+            }
+        }
+
+        function calcularDistancia(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        function formatarTempoTela(ms) {
+            const m = Math.floor(ms / 60000);
+            const s = Math.floor((ms % 60000) / 1000);
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function formatarTempoBD(ms) {
+            const m = Math.floor(ms / 60000);
+            const s = ((ms % 60000) / 1000).toFixed(2);
+            return `${m}:${s.padStart(5, '0')}`;
+        }
+    </script>
+</body>
+</html>
