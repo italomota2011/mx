@@ -6,7 +6,7 @@
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#ea580c",
-  "orientation": "portrait",
+  "orientation": "landscape",
   "icons": [
     {
       "src": "https://github.com/italomota2011/mx/blob/main/icon.jpg?raw=true",
