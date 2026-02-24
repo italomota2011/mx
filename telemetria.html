@@ -14,14 +14,10 @@
             #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
         }
         .sector-table { border-collapse: separate; border-spacing: 0 4px; }
-        
-        /* Novas Cores Solicitadas */
-        .bg-bom { background-color: #dc2626 !important; color: white !important; } /* Vermelho: Bom */
-        .bg-inter { background-color: #eab308 !important; color: black !important; } /* Amarelo: Intermediário */
-        .text-ruim { color: #71717a !important; } /* Cinza: Ruim */
-        
+        .bg-bom { background-color: #dc2626 !important; color: white !important; } /* Vermelho */
+        .bg-inter { background-color: #eab308 !important; color: black !important; } /* Amarelo */
+        .text-ruim { color: #71717a !important; } /* Cinza */
         .row-selected { outline: 2px solid #fff; background-color: #111 !important; }
-        * { user-select: none; -webkit-tap-highlight-color: transparent; }
     </style>
 </head>
 <body>
@@ -30,8 +26,8 @@
             <div class="flex items-center gap-4">
                 <button onclick="window.history.back()" class="bg-zinc-900 w-10 h-10 flex items-center justify-center rounded-xl text-zinc-400 text-xl font-bold">←</button>
                 <div>
-                    <h1 id="viewPista" class="text-white font-black italic uppercase text-lg leading-none tracking-tighter">---</h1>
-                    <p id="viewPiloto" class="text-zinc-600 text-[9px] font-bold uppercase mt-1">---</p>
+                    <h1 id="viewPista" class="text-white font-black italic uppercase text-lg leading-none tracking-tighter">CARREGANDO...</h1>
+                    <p id="viewPiloto" class="text-zinc-600 text-[9px] font-bold uppercase mt-1">AGUARDE</p>
                 </div>
             </div>
             <div class="flex items-center gap-3">
@@ -39,7 +35,7 @@
                     <option value="sessao">Comparar: Melhor Sessão</option>
                     <option value="pista">Comparar: Recorde Pista</option>
                 </select>
-                <button onclick="toggleFullscreen()" class="bg-zinc-800 text-[10px] font-black px-4 py-2 rounded-xl text-yellow-500 uppercase">⛶</button>
+                <button onclick="if(!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen();" class="bg-zinc-800 text-[10px] font-black px-4 py-2 rounded-xl text-yellow-500 uppercase">⛶</button>
             </div>
         </div>
 
@@ -49,4 +45,64 @@
                     <thead>
                         <tr class="text-zinc-700 uppercase italic font-black text-[8px] text-center">
                             <th class="pb-3 text-left">LAP</th>
-                            <th>S1</th><th>S2</th><th>S3</th><th>S
+                            <th>S1</th><th>S2</th><th>S3</th><th>S4</th>
+                            <th class="pb-3 text-right">TIME</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaVoltas" class="text-center font-mono font-bold"></tbody>
+                </table>
+            </div>
+            <div class="col-span-5 h-full relative">
+                <div id="map"></div>
+                <div class="absolute bottom-4 left-4 right-4 bg-black/80 backdrop-blur-md p-3 rounded-2xl border border-white/10 z-[1000]">
+                    <div class="grid grid-cols-3 gap-1 text-[7px] font-bold uppercase text-center">
+                        <div class="text-red-600 font-black">● Bom</div>
+                        <div class="text-yellow-500 font-black">● Médio</div>
+                        <div class="text-zinc-500 font-black">● Ruim</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
+            authDomain: "mxlaptimer.firebaseapp.com",
+            projectId: "mxlaptimer",
+            storageBucket: "mxlaptimer.firebasestorage.app",
+            messagingSenderId: "790485374192",
+            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const urlParams = new URLSearchParams(window.location.search);
+        const treinoId = urlParams.get('id');
+
+        let map, polyline, dadosTreino, voltasFinal = [];
+        let recordesSessao = [999, 999, 999, 999];
+        let recordesPista = [999, 999, 999, 999];
+
+        async function carregar() {
+            if (!treinoId) {
+                document.getElementById('viewPista').innerText = "ERRO: SEM ID";
+                return;
+            }
+
+            try {
+                const docSnap = await getDoc(doc(db, "treinos", treinoId));
+                if (!docSnap.exists()) {
+                    document.getElementById('viewPista').innerText = "NÃO ENCONTRADO";
+                    return;
+                }
+
+                dadosTreino = docSnap.data();
+                document.getElementById('viewPista').innerText = (dadosTreino.pista || "PISTA").toUpperCase();
+                document.getElementById('viewPiloto').innerText = (dadosTreino.piloto || "PILOTO").toUpperCase();
+
+                // 1. Recordes da Pista
+                const q =
