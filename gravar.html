@@ -2,155 +2,185 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Gravar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Reset para evitar scrolls e comportamentos elásticos no PWA */
-        * {
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
+        body {
+        overscroll-behavior-y: contain; 
+    overflow: hidden; 
+}
+        body { background-color: #000; height: 100dvh; margin: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; color: white; }
+        @media screen and (orientation: portrait) {
+            #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
         }
-
-        body { 
-            background-color: #000; 
-            height: 100dvh; 
-            margin: 0; 
-            overflow: hidden; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            color: white;
-            font-family: sans-serif;
-        }
-
-        /* REMOVIDA A ROTAÇÃO MANUAL @media (orientation: portrait)
-           O PWA usa o 'orientation: landscape' do manifest.json.
-           Forçar rotação via CSS no PWA causa o erro de corte de tela.
-        */
-
-        #app-container {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-
-        /* Ajuste do cronômetro para nunca estourar a altura da tela */
         .time-sessao { 
-            font-size: 45vh; /* Baseado na altura para caber sempre no modo deitado */
+            font-size: 55vw; 
             font-weight: 900; 
-            font-family: 'Courier New', Courier, monospace; 
+            font-family: monospace; 
             line-height: 1; 
             color: #fff;
-            letter-spacing: -2vh;
-            text-align: center;
-        }
-
-        .info-topo {
-            position: absolute;
-            top: 20px;
-            width: 90%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            text-transform: uppercase;
-            font-weight: bold;
-            font-size: 12px;
-            color: #666;
-        }
-
-        .btn-acao {
-            position: absolute;
-            bottom: 30px;
-            padding: 15px 40px;
-            border-radius: 50px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            transition: all 0.2s;
+            letter-spacing: -10px;
         }
     </style>
 </head>
 <body>
-
-    <div id="app-container">
-        <div class="info-topo">
-            <div id="display-pista">Carregando...</div>
-            <div id="display-voltas" class="text-yellow-500">Volta: 0</div>
-            <div id="display-velocidade" class="text-white">0 km/h</div>
+    <div id="app-container" class="w-full h-full flex flex-col items-center justify-between p-4">
+        <div class="w-full flex justify-between items-center">
+            <button onclick="window.encerrarSessao()" class="text-zinc-600 font-bold uppercase text-[10px] border border-zinc-800 px-4 py-2 rounded-xl italic">← Voltar</button>
+            <div class="text-zinc-500 font-black italic text-[10px] uppercase tracking-tighter text-right leading-none">
+                <span id="txtPista">...</span><br>
+                <span id="txtPiloto" class="text-yellow-400">...</span>
+            </div>
         </div>
 
-        <div id="cronometro" class="time-sessao">00:00</div>
-
-        <div id="ultima-volta" class="absolute right-10 top-1/2 -translate-y-1/2 text-right">
-            <p class="text-[10px] text-zinc-500 uppercase font-bold">Última</p>
-            <p id="tempo-ultima" class="text-2xl font-black italic">--:--</p>
+        <div class="flex-1 flex items-center justify-center">
+            <div id="timerTotal" class="time-sessao">00:00</div>
         </div>
 
-        <button id="btnAcao" onclick="toggleGravacao()" class="btn-acao bg-white text-black active:scale-95">
-            Iniciar
-        </button>
+        <div class="w-full grid grid-cols-3 gap-4 items-center mb-2">
+            <div class="bg-zinc-950 p-4 rounded-3xl border border-zinc-900 text-center">
+                <div class="text-[9px] text-zinc-600 font-bold uppercase italic mb-1">Voltas</div>
+                <div id="contagemVoltas" class="text-3xl font-black italic text-white">0</div>
+            </div>
+
+            <button id="btnAcao" onclick="window.alternarSessao()" class="bg-green-600 text-white font-black py-6 rounded-3xl uppercase text-xl border-b-4 border-green-900 active:scale-95 transition-all">
+                Iniciar
+            </button>
+
+            <div class="bg-zinc-950 p-4 rounded-3xl border border-zinc-900 text-center">
+                <div class="text-[9px] text-zinc-600 font-bold uppercase italic mb-1 leading-tight">Status</div>
+                <div id="statusTXT" class="text-[10px] font-black italic text-zinc-500 uppercase">Pronto</div>
+            </div>
+        </div>
     </div>
 
     <script type="module">
-        // Importação do Firebase (Certifique-se que o db está configurado no seu projeto)
-        // Se usar um arquivo externo de config, importe-o aqui.
-        
-        let gravando = false;
-        let tempoInicial = 0;
-        let intervalo;
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        function atualizarCronometro() {
-            const agora = Date.now();
-            const diff = agora - tempoInicial;
-            const segs = Math.floor((diff / 1000) % 60);
-            const mins = Math.floor((diff / 1000 / 60) % 60);
-            
-            document.getElementById('cronometro').innerText = 
-                `${mins.toString().padStart(2, '0')}:${segs.toString().padStart(2, '0')}`;
+        const firebaseConfig = {
+            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
+            authDomain: "mxlaptimer.firebaseapp.com",
+            projectId: "mxlaptimer",
+            storageBucket: "mxlaptimer.firebasestorage.app",
+            messagingSenderId: "790485374192",
+            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let gravando = false;
+        let tempoInicialSessao, intervalo, watchID;
+        let voltasCount = 0;
+        let ultimaMarcacaoVolta = 0;
+        let temposVoltas = [];
+        let rastroTelemetria = []; 
+        let marcasDeVolta = []; 
+        
+        const pistaAtiva = JSON.parse(localStorage.getItem('pistaAtiva'));
+        const pilotoAtivo = sessionStorage.getItem('pilotoAtual') || "Piloto";
+
+        if(pistaAtiva) {
+            document.getElementById('txtPista').innerText = pistaAtiva.nome;
+            document.getElementById('txtPiloto').innerText = pilotoAtivo;
         }
 
-        window.toggleGravacao = function() {
+        window.alternarSessao = function() {
             const btn = document.getElementById('btnAcao');
+            const status = document.getElementById('statusTXT');
             if (!gravando) {
-                // Iniciar
+                if (!pistaAtiva) return alert("Erro: Pista não encontrada.");
                 gravando = true;
-                tempoInicial = Date.now();
-                intervalo = setInterval(atualizarCronometro, 1000);
+                tempoInicialSessao = Date.now();
+                ultimaMarcacaoVolta = tempoInicialSessao;
+                rastroTelemetria = [];
+                marcasDeVolta = [0]; 
+                intervalo = setInterval(atualizarCronometro, 100); 
+                iniciarMonitoramentoGPS();
                 btn.innerText = "Parar";
-                btn.classList.replace('bg-white', 'bg-red-600');
-                btn.classList.add('text-white');
-                // Bloqueia o ecrã de apagar (opcional)
-                if (navigator.wakeLock) navigator.wakeLock.request('screen');
+                btn.style.backgroundColor = "#dc2626"; 
+                btn.style.borderBottomColor = "#7f1d1d";
+                status.innerText = "Gravando";
             } else {
-                // Parar e Salvar
-                pararGravacao();
+                pararESalvar();
             }
         };
 
-        async function pararGravacao() {
+        window.encerrarSessao = function() {
+            if(confirm("Deseja sair?")) window.location.href = 'index.html';
+        };
+
+        function atualizarCronometro() {
+            const ms = Date.now() - tempoInicialSessao;
+            const m = String(Math.floor(ms / 60000)).padStart(2, '0');
+            const s = String(Math.floor((ms % 60000) / 1000)).padStart(2, '0');
+            document.getElementById('timerTotal').innerText = `${m}:${s}`;
+        }
+
+        function formatarTempoBD(ms) {
+            const m = String(Math.floor(ms / 60000)).padStart(2, '0');
+            const s = String(Math.floor((ms % 60000) / 1000)).padStart(2, '0');
+            const c = String(Math.floor((ms % 1000) / 10)).padStart(2, '0');
+            return `${m}:${s}.${c}`;
+        }
+
+        function iniciarMonitoramentoGPS() {
+            watchID = navigator.geolocation.watchPosition((pos) => {
+                const agora = Date.now();
+                rastroTelemetria.push({
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    vel: pos.coords.speed ? (pos.coords.speed * 3.6).toFixed(1) : 0,
+                    ts: agora - tempoInicialSessao
+                });
+
+                const dist = calcularDistancia(pos.coords.latitude, pos.coords.longitude, pistaAtiva.lat, pistaAtiva.lng);
+                if (dist < 0.01 && (agora - ultimaMarcacaoVolta > 15000)) { 
+                    temposVoltas.push(formatarTempoBD(agora - ultimaMarcacaoVolta));
+                    voltasCount++;
+                    document.getElementById('contagemVoltas').innerText = voltasCount;
+                    ultimaMarcacaoVolta = agora;
+                    marcasDeVolta.push(rastroTelemetria.length - 1);
+                }
+            }, null, { enableHighAccuracy: true });
+        }
+
+        async function pararESalvar() {
             clearInterval(intervalo);
+            if (watchID) navigator.geolocation.clearWatch(watchID);
             const btn = document.getElementById('btnAcao');
             btn.disabled = true;
             btn.innerText = "Salvando...";
-            
-            // Aqui entra a sua lógica de addDoc do Firebase que já existe no seu código original
-            setTimeout(() => {
-                alert("Treino salvo!");
+
+            try {
+                await addDoc(collection(db, "treinos"), {
+                    piloto: pilotoAtivo,
+                    pista: pistaAtiva.nome,
+                    voltasTotal: voltasCount,
+                    voltas: temposVoltas,
+                    telemetria: rastroTelemetria,
+                    marcasDeVolta: marcasDeVolta,
+                    totalSessao: formatarTempoBD(Date.now() - tempoInicialSessao),
+                    data: serverTimestamp()
+                });
+                alert("Treino gravado com sucesso!");
                 window.location.href = 'index.html';
-            }, 1500);
+            } catch (e) {
+                alert("Erro ao salvar.");
+                btn.disabled = false;
+                btn.innerText = "Parar";
+            }
         }
 
-        // Carregar dados iniciais
-        window.onload = () => {
-            const pista = JSON.parse(localStorage.getItem('pistaAtiva') || '{"nome":"Sem Pista"}');
-            const piloto = sessionStorage.getItem('pilotoAtual') || 'Piloto';
-            document.getElementById('display-pista').innerText = `${piloto} @ ${pista.nome}`;
-        };
+        function calcularDistancia(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
     </script>
 </body>
 </html>
