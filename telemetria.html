@@ -3,46 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telemetria MX4</title>
+    <title>Telemetria</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
     <style>
         body { background-color: #000; color: white; font-family: sans-serif; margin: 0; overflow: hidden; height: 100vh; }
-        #map { height: 100%; width: 100%; border-radius: 2rem; border: 1px solid #222; }
+        #map { height: 100%; width: 100%; border-radius: 1.5rem; border: 1px solid #222; }
+        
         @media screen and (orientation: portrait) {
-            #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
+            #app-container { 
+                transform: rotate(90deg); transform-origin: center; 
+                width: 100dvh; height: 100vw; 
+                position: absolute; top: 50%; left: 50%; translate: -50% -50%; 
+            }
         }
+
         .sector-table { border-collapse: separate; border-spacing: 0 4px; }
         
-        /* Cores solicitadas */
-        .cor-bom { background-color: #dc2626 !important; color: white !important; border-radius: 6px; } /* Vermelho */
-        .cor-medio { background-color: #eab308 !important; color: black !important; border-radius: 6px; } /* Amarelo */
-        .cor-ruim { color: #71717a !important; } /* Cinza */
+        /* CORES SOLICITADAS */
+        .bg-bom { background-color: #dc2626 !important; color: white; border-radius: 4px; } /* Vermelho */
+        .bg-medio { background-color: #eab308 !important; color: black; border-radius: 4px; } /* Amarelo */
+        .text-ruim { color: #71717a !important; } /* Cinza */
         
-        .row-selected { outline: 2px solid #fff; background-color: #111 !important; }
+        .row-selected { outline: 2px solid #eab308; background-color: #111 !important; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
         * { user-select: none; -webkit-tap-highlight-color: transparent; }
     </style>
 </head>
 <body>
     <div id="app-container" class="p-4 h-full flex flex-col gap-3">
-        <div class="flex justify-between items-center bg-zinc-950 p-4 rounded-[2rem] border border-zinc-900 shadow-xl">
+        
+        <div class="flex justify-between items-center bg-zinc-950 p-4 rounded-3xl border border-zinc-900 shadow-xl">
             <div class="flex items-center gap-4">
-                <button onclick="window.history.back()" class="bg-zinc-900 w-10 h-10 flex items-center justify-center rounded-xl text-zinc-400 text-xl font-bold">←</button>
+                <button onclick="window.history.back()" class="bg-zinc-900 w-10 h-10 flex items-center justify-center rounded-xl text-zinc-400 active:scale-90 transition-all text-xl">←</button>
                 <div>
-                    <h1 id="viewPista" class="text-white font-black italic uppercase text-lg leading-none">CARREGANDO...</h1>
-                    <p id="viewPiloto" class="text-zinc-600 text-[9px] font-bold uppercase mt-1">Sincronizando</p>
+                    <h1 id="viewPista" class="text-white font-black italic uppercase text-lg leading-none tracking-tighter">---</h1>
+                    <p id="viewPiloto" class="text-zinc-600 text-[9px] font-bold uppercase mt-1 tracking-widest">---</p>
                 </div>
             </div>
-            <div class="flex items-center gap-3">
-                <select id="baseComparacao" onchange="window.renderizarTabela()" class="bg-zinc-900 text-[10px] font-bold px-3 py-2 rounded-xl border border-zinc-800 text-white outline-none">
-                    <option value="sessao">vs Melhor Sessão</option>
-                    <option value="pista">vs Recorde Pista</option>
-                </select>
-                <button onclick="if(!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen();" class="bg-zinc-800 text-[10px] font-black px-4 py-2 rounded-xl text-yellow-500 uppercase">⛶</button>
-            </div>
-        </div>
-
-        <div class="flex-1 grid grid-cols-12 gap-3 overflow-hidden">
-            <div class="col-span-7 bg-zinc-950 p-4 rounded-[2.5rem] border border-zinc-900 overflow-y-auto">
+            <div class="flex items-center gap-4">
+                <select id
