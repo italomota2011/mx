@@ -3,82 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telemetria MX4 - 4 Setores</title>
+    <title>Telemetria</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        body { background-color: #000; color: white; font-family: sans-serif; margin: 0; overflow-x: hidden; }
-        #map { height: 350px; width: 100%; border-radius: 2rem; border: 1px solid #222; z-index: 1; }
+        body { background-color: #000; color: white; font-family: sans-serif; margin: 0; overflow: hidden; height: 100vh; }
+        #map { height: 100%; width: 100%; border-radius: 1.5rem; border: 1px solid #222; }
         
+        /* Força o modo paisagem visualmente se não estiver em fullscreen */
         @media screen and (orientation: portrait) {
-            #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; overflow-y: auto; }
+            #app-container { 
+                transform: rotate(90deg); transform-origin: center; 
+                width: 100dvh; height: 100vw; 
+                position: absolute; top: 50%; left: 50%; translate: -50% -50%; 
+            }
         }
 
-        .sector-table { border-collapse: separate; border-spacing: 0 6px; }
-        .sector-cell { font-family: monospace; font-weight: bold; font-size: 11px; }
-        
-        /* Cores dos setores baseadas na performance */
+        .sector-table { border-collapse: separate; border-spacing: 0 4px; }
+        .bg-best-pers { background-color: #16a34a !important; color: white; } /* Verde - Melhor da Sessão */
         .bg-best-abs { background-color: #9333ea !important; color: white; } /* Roxo - Recorde */
-        .bg-best-pers { background-color: #16a34a !important; color: white; } /* Verde - Melhor pessoal */
-        .bg-normal { background-color: #27272a; color: #a1a1aa; } /* Cinza - Normal */
         
-        .row-volta:active { background-color: #111; }
-        .row-selected { border: 1px solid #eab308 !important; background-color: #111 !important; }
+        .row-selected { outline: 2px solid #eab308; background-color: #111 !important; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
     </style>
 </head>
 <body>
-    <div id="app-container" class="p-4 flex flex-col gap-4">
+    <div id="app-container" class="p-4 h-full flex flex-col gap-4">
         
-        <div class="flex justify-between items-center bg-zinc-950 p-5 rounded-[2rem] border border-zinc-900 shadow-xl">
-            <div>
-                <h1 id="viewPista" class="text-yellow-500 font-black italic uppercase text-xl leading-none">---</h1>
-                <p id="viewPiloto" class="text-zinc-600 text-[10px] font-bold uppercase tracking-widest mt-1">---</p>
+        <div class="flex justify-between items-center bg-zinc-950 p-4 rounded-[1.5rem] border border-zinc-900">
+            <div class="flex items-center gap-4">
+                <button onclick="window.history.back()" class="bg-zinc-900 p-2 rounded-lg text-zinc-400">←</button>
+                <div>
+                    <h1 id="viewPista" class="text-yellow-500 font-black italic uppercase text-lg leading-none">---</h1>
+                    <p id="viewPiloto" class="text-zinc-600 text-[9px] font-bold uppercase mt-1">---</p>
+                </div>
             </div>
-            <div class="flex flex-col items-end gap-2">
-                <select id="selectComparativo" class="bg-zinc-900 text-white text-[9px] font-black uppercase border border-zinc-800 rounded-xl px-3 py-2 outline-none">
-                    <option value="sessao">Comparar: Melhor da Sessão</option>
-                    <option value="recorde">Comparar: Recorde da Pista</option>
-                </select>
-                <button onclick="window.history.back()" class="text-zinc-700 text-[9px] font-black uppercase italic hover:text-white transition-colors">← Voltar para Ranking</button>
+            <div class="flex items-center gap-3">
+                <button onclick="toggleFullscreen()" class="bg-zinc-900 text-[9px] font-black px-3 py-2 rounded-xl border border-zinc-800 uppercase text-yellow-500">Tela Cheia ⛶</button>
+                <div class="text-right">
+                    <p class="text-[8px] text-zinc-500 font-bold uppercase">Melhor Volta</p>
+                    <p id="bestLapSessao" class="text-sm font-black italic text-white">--:--.---</p>
+                </div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div class="bg-zinc-950 p-5 rounded-[2.5rem] border border-zinc-900 overflow-x-auto shadow-2xl">
+        <div class="flex-1 grid grid-cols-12 gap-4 overflow-hidden">
+            <div class="col-span-7 bg-zinc-950 p-4 rounded-[1.5rem] border border-zinc-900 overflow-y-auto">
                 <table class="w-full sector-table">
                     <thead>
-                        <tr class="text-zinc-700 uppercase italic font-black text-[9px] tracking-tighter">
-                            <th class="pb-4 text-left px-2">Volta</th>
-                            <th class="pb-4 text-center">S1</th>
-                            <th class="pb-4 text-center">S2</th>
-                            <th class="pb-4 text-center">S3</th>
-                            <th class="pb-4 text-center">S4</th>
-                            <th class="pb-4 text-right px-2">Tempo</th>
+                        <tr class="text-zinc-700 uppercase italic font-black text-[8px]">
+                            <th class="pb-2 text-left">Lap</th>
+                            <th class="pb-2 text-center">S1</th>
+                            <th class="pb-2 text-center">S2</th>
+                            <th class="pb-2 text-center">S3</th>
+                            <th class="pb-2 text-center">S4</th>
+                            <th class="pb-2 text-right">Time</th>
                         </tr>
                     </thead>
-                    <tbody id="tabelaVoltas">
-                        </tbody>
+                    <tbody id="tabelaVoltas"></tbody>
                 </table>
             </div>
 
-            <div class="flex flex-col gap-3">
+            <div class="col-span-5 flex flex-col gap-2 h-full">
                 <div id="map"></div>
-                <div class="flex justify-between items-center bg-zinc-950/50 p-4 rounded-3xl border border-zinc-900">
-                    <div id="infoVoltaSelect" class="text-[10px] font-black italic text-zinc-500 uppercase">
-                        Selecione uma volta na tabela
-                    </div>
-                    <div id="infoGap" class="text-[10px] font-black italic text-yellow-500 uppercase">
-                        Telemetria GPS Ativa
-                    </div>
-                </div>
             </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
@@ -91,103 +87,101 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        
         const urlParams = new URLSearchParams(window.location.search);
         const treinoId = urlParams.get('id');
 
-        let map, polyline;
-        let dadosTreino;
+        let map, polyline, dadosTreino;
+        let melhoresSetoresSessao = [999, 999, 999, 999];
 
-        async function carregarDados() {
-            if (!treinoId) {
-                alert("ID do treino não encontrado.");
-                return;
-            }
-
-            const docRef = doc(db, "treinos", treinoId);
-            const docSnap = await getDoc(docRef);
-
-            if (docSnap.exists()) {
-                dadosTreino = docSnap.data();
-                document.getElementById('viewPista').innerText = dadosTreino.pista;
-                document.getElementById('viewPiloto').innerText = dadosTreino.piloto;
-                
-                initMap();
-                renderizarTabela();
+        // FUNÇÃO PARA TELA CHEIA E TRAVAR ORIENTAÇÃO
+        window.toggleFullscreen = async () => {
+            if (!document.fullscreenElement) {
+                await document.documentElement.requestFullscreen();
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('landscape').catch(e => console.log("Aguardando interação..."));
+                }
             } else {
-                alert("Treino não encontrado no banco de dados.");
+                document.exitFullscreen();
             }
+        };
+
+        async function carregar() {
+            const docSnap = await getDoc(doc(db, "treinos", treinoId));
+            if (!docSnap.exists()) return;
+            dadosTreino = docSnap.data();
+            
+            document.getElementById('viewPista').innerText = dadosTreino.pista;
+            document.getElementById('viewPiloto').innerText = dadosTreino.piloto;
+            document.getElementById('bestLapSessao').innerText = [...dadosTreino.voltas].sort()[0];
+
+            processarSetores();
+            initMap();
         }
 
-        function renderizarTabela() {
-            const tbody = document.getElementById('tabelaVoltas');
+        function processarSetores() {
             const marcas = dadosTreino.marcasDeVolta || [];
             const tele = dadosTreino.telemetria || [];
-            tbody.innerHTML = "";
+            const voltasProcessadas = [];
 
-            // O marcasDeVolta guarda os índices de onde cada volta começa/termina
+            // Passo 1: Calcular todos os setores primeiro para achar os melhores da sessão
             for (let i = 0; i < marcas.length - 1; i++) {
-                const inicioIdx = marcas[i];
-                const fimIdx = marcas[i+1];
-                const rastroVolta = tele.slice(inicioIdx, fimIdx);
+                const rastro = tele.slice(marcas[i], marcas[i+1]);
+                if (rastro.length < 5) continue;
                 
-                if (rastroVolta.length < 5) continue; 
-
-                // Lógica de 4 setores (divisão do rastro em 4 partes)
-                const q = Math.floor(rastroVolta.length / 4);
-                const s1 = (rastroVolta[q].ts - rastroVolta[0].ts) / 1000;
-                const s2 = (rastroVolta[q*2].ts - rastroVolta[q].ts) / 1000;
-                const s3 = (rastroVolta[q*3].ts - rastroVolta[q*2].ts) / 1000;
-                const s4 = (rastroVolta[rastroVolta.length-1].ts - rastroVolta[q*3].ts) / 1000;
+                const q = Math.floor(rastro.length / 4);
+                const s = [
+                    (rastro[q].ts - rastro[0].ts) / 1000,
+                    (rastro[q*2].ts - rastro[q].ts) / 1000,
+                    (rastro[q*3].ts - rastro[q*2].ts) / 1000,
+                    (rastro[rastro.length-1].ts - rastro[q*3].ts) / 1000
+                ];
                 
-                const tempoTotal = dadosTreino.voltas[i];
+                s.forEach((val, idx) => {
+                    if (val < melhoresSetoresSessao[idx]) melhoresSetoresSessao[idx] = val;
+                });
+                voltasProcessadas.push({ s, tempo: dadosTreino.voltas[i], rastro });
+            }
 
+            // Passo 2: Renderizar com as cores
+            const tbody = document.getElementById('tabelaVoltas');
+            voltasProcessadas.forEach((v, i) => {
                 const tr = document.createElement('tr');
-                tr.className = "row-volta bg-zinc-900/30 rounded-xl overflow-hidden cursor-pointer transition-all border border-transparent hover:border-zinc-700";
+                tr.className = "row-volta bg-zinc-900/30 rounded-lg cursor-pointer text-[10px]";
                 tr.onclick = () => {
                     document.querySelectorAll('.row-volta').forEach(r => r.classList.remove('row-selected'));
                     tr.classList.add('row-selected');
-                    plotarNoMapa(rastroVolta, i+1);
+                    plotarMapa(v.rastro);
                 };
 
                 tr.innerHTML = `
-                    <td class="p-3 font-black italic text-zinc-700 text-xs">${i+1}</td>
-                    <td class="p-3 text-center sector-cell bg-zinc-900/50 rounded-l-xl">${s1.toFixed(3)}</td>
-                    <td class="p-3 text-center sector-cell bg-zinc-900/80">${s2.toFixed(3)}</td>
-                    <td class="p-3 text-center sector-cell bg-zinc-900/50">${s3.toFixed(3)}</td>
-                    <td class="p-3 text-center sector-cell bg-zinc-900/80 rounded-r-xl">${s4.toFixed(3)}</td>
-                    <td class="p-3 text-right font-black italic text-white text-sm">${tempoTotal}</td>
+                    <td class="p-2 font-black italic text-zinc-700">${i+1}</td>
+                    ${v.s.map((val, idx) => `
+                        <td class="p-2 text-center font-mono font-bold ${val <= melhoresSetoresSessao[idx] ? 'bg-best-pers' : 'text-zinc-400'}">
+                            ${val.toFixed(3)}
+                        </td>
+                    `).join('')}
+                    <td class="p-2 text-right font-black italic text-white">${v.tempo}</td>
                 `;
                 tbody.appendChild(tr);
-            }
+            });
         }
 
         function initMap() {
             map = L.map('map', { zoomControl: false, attributionControl: false }).setView([0,0], 13);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-
-            if (dadosTreino.telemetria && dadosTreino.telemetria.length > 0) {
-                const primeiraPos = [dadosTreino.telemetria[0].lat, dadosTreino.telemetria[0].lng];
-                map.setView(primeiraPos, 17);
+            if (dadosTreino.telemetria.length) {
+                map.setView([dadosTreino.telemetria[0].lat, dadosTreino.telemetria[0].lng], 17);
             }
         }
 
-        function plotarNoMapa(rastro, num) {
+        function plotarMapa(rastro) {
             if (polyline) map.removeLayer(polyline);
-
-            const pontos = rastro.map(p => [p.lat, p.lng]);
-            polyline = L.polyline(pontos, {
-                color: '#eab308',
-                weight: 5,
-                opacity: 0.9,
-                lineJoin: 'round'
-            }).addTo(map);
-
-            map.fitBounds(polyline.getBounds(), { padding: [20, 20] });
-            document.getElementById('infoVoltaSelect').innerText = `Analisando Volta ${num}`;
+            const pts = rastro.map(p => [p.lat, p.lng]);
+            polyline = L.polyline(pts, { color: '#eab308', weight: 4 }).addTo(map);
+            map.fitBounds(polyline.getBounds(), { padding: [10, 10] });
         }
 
-        carregarDados();
+        carregar();
     </script>
 </body>
 </html>
