@@ -3,30 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Análise de Performance - MX4</title>
+    <title>Telemetria</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         body { background-color: #000; color: white; font-family: sans-serif; margin: 0; overflow: hidden; height: 100vh; }
         #map { height: 100%; width: 100%; border-radius: 1.5rem; border: 1px solid #222; }
+        
+        /* Força o modo paisagem visualmente se não estiver em fullscreen */
         @media screen and (orientation: portrait) {
-            #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
+            #app-container { 
+                transform: rotate(90deg); transform-origin: center; 
+                width: 100dvh; height: 100vw; 
+                position: absolute; top: 50%; left: 50%; translate: -50% -50%; 
+            }
         }
+
         .sector-table { border-collapse: separate; border-spacing: 0 4px; }
-        /* Cores solicitadas */
-        .bg-bom { background-color: #dc2626 !important; color: white; border-radius: 4px; } /* Vermelho */
-        .bg-medio { background-color: #eab308 !important; color: black; border-radius: 4px; } /* Amarelo */
-        .text-ruim { color: #71717a !important; } /* Cinza */
+        .bg-best-pers { background-color: #16a34a !important; color: white; } /* Verde - Melhor da Sessão */
+        .bg-best-abs { background-color: #9333ea !important; color: white; } /* Roxo - Recorde */
+        
         .row-selected { outline: 2px solid #eab308; background-color: #111 !important; }
-        * { user-select: none; -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
     </style>
 </head>
 <body>
-    <div id="app-container" class="p-4 h-full flex flex-col gap-3">
-        <div class="flex justify-between items-center bg-zinc-950 p-4 rounded-3xl border border-zinc-900 shadow-xl">
+    <div id="app-container" class="p-4 h-full flex flex-col gap-4">
+        
+        <div class="flex justify-between items-center bg-zinc-950 p-4 rounded-[1.5rem] border border-zinc-900">
             <div class="flex items-center gap-4">
-                <button onclick="window.history.back()" class="bg-zinc-900 w-10 h-10 flex items-center justify-center rounded-xl text-zinc-400 text-xl">←</button>
+                <button onclick="window.history.back()" class="bg-zinc-900 p-2 rounded-lg text-zinc-400">←</button>
                 <div>
-                    <h1 id="viewPista" class="text-white font-black italic uppercase text-lg leading-none">---</h1>
-                    <p id="viewPiloto" class="
+                    <h1 id="viewPista" class="text-yellow-500 font-black italic uppercase text-lg leading-none">---</h1>
+                    <p id="viewPiloto" class="text-zinc-600 text-[9px] font-bold uppercase mt-1">---</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="toggleFullscreen()" class="bg-zinc-900 text-[9px] font-black px-3 py-2 rounded-xl border border-zinc-800 uppercase text-yellow-500">Tela Cheia ⛶</button>
+                <div class="text-right">
+                    <p class="text-[8px] text-zinc-500 font-bold uppercase">Melhor Volta</p>
+                    <p id="bestLapSessao" class="text-sm font-black italic text-white">--:--.---</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 grid grid-cols-12 gap-4 overflow-hidden">
+            <div class="col-span-7 bg-zinc-950 p-4 rounded-[1.5rem] border border-zinc-900 overflow-y-auto">
+                <table class="w-full sector-table">
+                    <thead>
+                        <tr class="text-zinc-700 uppercase italic font-black text-[8px]">
+                            <th class="pb-2 text-left">Lap</th>
+                            <th class="pb-2 text-center">S1</th>
+                            <th class="pb-2 text-center">S2</th>
+                            <th class="pb-2 text-center">S3</th>
+                            <th class="pb-2 text-center">S4</th>
+                            <th class="pb-2 text-right">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaVoltas"></tbody>
+                </table>
+            </div>
+
+            <div class="col-span-5 flex flex-col gap-2 h-full">
+                <div id="map"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
+            authDomain: "mxlaptimer.firebaseapp.com",
+            projectId: "mxlaptimer",
+            storageBucket: "mxlaptimer.firebasestorage.app",
+            messagingSenderId: "790485374192",
+            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const urlParams = new URLSearchParams(window.location.search);
+        const treinoId = urlParams.get('id');
+
+        let map, polyline, dadosTreino;
+        let melhoresSetoresSessao = [999, 999, 999, 999];
+
+        // FUNÇÃO PARA TELA CHEIA E TRAVAR ORIENTAÇÃO
+        window.toggleFullscreen = async () => {
+            if (!document.fullscreenElement) {
+                await document.documentElement.requestFullscreen();
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('landscape').catch(e => console.log("Aguardando interação..."));
+                }
+            } else {
+                document.exitFullscreen();
+            }
+        };
+
+        async function carregar() {
+            const docSnap = await getDoc(doc(db, "treinos", treinoId));
+            if (!docSnap.exists()) return;
+            dadosTreino = docSnap.data();
+            
+            document.getElementById('viewPista').innerText = dadosTreino.pista;
+            document.getElementById('viewPiloto').innerText = dadosTreino.piloto;
+            document.getElementById('bestLapSessao').innerText = [...dadosTreino.voltas].sort()[0];
+
+            processarSetores();
+            initMap();
+        }
+
+        function processarSetores() {
+            const marcas = dadosTreino.marcasDeVolta || [];
+            const tele = dadosTreino.telemetria || [];
+            const voltasProcessadas = [];
+
+            // Passo 1: Calcular todos os setores primeiro para achar os melhores da sessão
+            for (let i = 0; i < marcas.length - 1; i++) {
+                const rastro = tele.slice(marcas[i], marcas[i+1]);
+                if (rastro.length < 5) continue;
+                
+                const q = Math.floor(rastro.length / 4);
+                const s = [
+                    (rastro[q].ts - rastro[0].ts) / 1000,
+                    (rastro[q*2].ts - rastro[q].ts) / 1000,
+                    (rastro[q*3].ts - rastro[q*2].ts) / 1000,
+                    (rastro[rastro.length-1].ts - rastro[q*3].ts) / 1000
+                ];
+                
+                s.forEach((val, idx) => {
+                    if (val < melhoresSetoresSessao[idx]) melhoresSetoresSessao[idx] = val;
+                });
+                voltasProcessadas.push({ s, tempo: dadosTreino.voltas[i], rastro });
+            }
+
+            // Passo 2: Renderizar com as cores
+            const tbody = document.getElementById('tabelaVoltas');
+            voltasProcessadas.forEach((v, i) => {
+                const tr = document.createElement('tr');
+                tr.className = "row-volta bg-zinc-900/30 rounded-lg cursor-pointer text-[10px]";
+                tr.onclick = () => {
+                    document.querySelectorAll('.row-volta').forEach(r => r.classList.remove('row-selected'));
+                    tr.classList.add('row-selected');
+                    plotarMapa(v.rastro);
+                };
+
+                tr.innerHTML = `
+                    <td class="p-2 font-black italic text-zinc-700">${i+1}</td>
+                    ${v.s.map((val, idx) => `
+                        <td class="p-2 text-center font-mono font-bold ${val <= melhoresSetoresSessao[idx] ? 'bg-best-pers' : 'text-zinc-400'}">
+                            ${val.toFixed(3)}
+                        </td>
+                    `).join('')}
+                    <td class="p-2 text-right font-black italic text-white">${v.tempo}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function initMap() {
+            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([0,0], 13);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+            if (dadosTreino.telemetria.length) {
+                map.setView([dadosTreino.telemetria[0].lat, dadosTreino.telemetria[0].lng], 17);
+            }
+        }
+
+        function plotarMapa(rastro) {
+            if (polyline) map.removeLayer(polyline);
+            const pts = rastro.map(p => [p.lat, p.lng]);
+            polyline = L.polyline(pts, { color: '#eab308', weight: 4 }).addTo(map);
+            map.fitBounds(polyline.getBounds(), { padding: [10, 10] });
+        }
+
+        carregar();
+    </script>
+</body>
+</html>
