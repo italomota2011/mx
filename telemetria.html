@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telemetria</title>
+    <title>Análise de Performance - MX4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -21,9 +21,9 @@
 
         .sector-table { border-collapse: separate; border-spacing: 0 4px; }
         
-        /* CORES SOLICITADAS */
-        .bg-bom { background-color: #dc2626 !important; color: white; border-radius: 4px; } /* Vermelho */
-        .bg-medio { background-color: #eab308 !important; color: black; border-radius: 4px; } /* Amarelo */
+        /* NOVAS CORES SOLICITADAS */
+        .bg-bom { background-color: #dc2626 !important; color: white !important; border-radius: 4px; } /* Vermelho */
+        .bg-medio { background-color: #eab308 !important; color: black !important; border-radius: 4px; } /* Amarelo */
         .text-ruim { color: #71717a !important; } /* Cinza */
         
         .row-selected { outline: 2px solid #eab308; background-color: #111 !important; }
@@ -33,15 +33,4 @@
     </style>
 </head>
 <body>
-    <div id="app-container" class="p-4 h-full flex flex-col gap-3">
-        
-        <div class="flex justify-between items-center bg-zinc-950 p-4 rounded-3xl border border-zinc-900 shadow-xl">
-            <div class="flex items-center gap-4">
-                <button onclick="window.history.back()" class="bg-zinc-900 w-10 h-10 flex items-center justify-center rounded-xl text-zinc-400 active:scale-90 transition-all text-xl">←</button>
-                <div>
-                    <h1 id="viewPista" class="text-white font-black italic uppercase text-lg leading-none tracking-tighter">---</h1>
-                    <p id="viewPiloto" class="text-zinc-600 text-[9px] font-bold uppercase mt-1 tracking-widest">---</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-4">
-                <select id
+    <div id="app-container" class="p-4 h-
