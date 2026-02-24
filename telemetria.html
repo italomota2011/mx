@@ -13,7 +13,7 @@
 
     <style>
         body { background-color: #000; color: white; font-family: sans-serif; margin: 0; overflow: hidden; height: 100vh; }
-        #map { height: 100%; width: 100%; border-radius: 2rem; border: 1px solid #222; }
+        #map { height: 100%; width: 100%; border-radius: 2rem; border: 1px solid #222; background: #050505; }
         
         @media screen and (orientation: portrait) {
             #app-container { 
@@ -25,14 +25,12 @@
 
         .sector-table { border-collapse: separate; border-spacing: 0 4px; }
         
-        /* Cores de Performance Personalizadas */
-        .bg-bom { background-color: #dc2626 !important; color: white !important; } /* Vermelho: Bom */
-        .bg-inter { background-color: #eab308 !important; color: black !important; } /* Amarelo: Médio */
-        .text-ruim { color: #71717a !important; } /* Cinza: Ruim */
+        /* Cores de Performance */
+        .status-bom { background-color: #dc2626 !important; color: white !important; border-radius: 0.5rem; } /* Vermelho */
+        .status-medio { background-color: #eab308 !important; color: black !important; border-radius: 0.5rem; } /* Amarelo */
+        .status-ruim { color: #71717a !important; } /* Cinza */
         
         .row-selected { outline: 2px solid #fff; background-color: #111 !important; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
         * { user-select: none; -webkit-tap-highlight-color: transparent; }
     </style>
 </head>
@@ -41,136 +39,4 @@
         
         <div class="flex justify-between items-center bg-zinc-950 p-4 rounded-[2rem] border border-zinc-900 shadow-xl">
             <div class="flex items-center gap-4">
-                <button onclick="window.history.back()" class="bg-zinc-900 w-10 h-10 flex items-center justify-center rounded-xl text-zinc-400 active:scale-90 transition-all text-xl">←</button>
-                <div>
-                    <h1 id="viewPista" class="text-white font-black italic uppercase text-lg leading-none tracking-tighter">CARREGANDO...</h1>
-                    <p id="viewPiloto" class="text-zinc-600 text-[9px] font-bold uppercase mt-1 tracking-widest">Sincronizando...</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-3">
-                <select id="baseComparacao" onchange="renderizarTabela()" class="bg-zinc-900 text-[10px] font-bold px-3 py-2 rounded-xl border border-zinc-800 text-white outline-none">
-                    <option value="sessao">Comparar: Melhor Sessão</option>
-                    <option value="pista">Comparar: Recorde Pista</option>
-                </select>
-                <button onclick="toggleFS()" class="bg-zinc-800 text-[10px] font-black px-4 py-2 rounded-xl text-yellow-500 uppercase transition-all active:bg-yellow-500 active:text-black">⛶</button>
-            </div>
-        </div>
-
-        <div class="flex-1 grid grid-cols-12 gap-3 overflow-hidden">
-            <div class="col-span-7 bg-zinc-950 p-5 rounded-[2.5rem] border border-zinc-900 overflow-y-auto shadow-inner">
-                <table class="w-full sector-table text-[11px]">
-                    <thead>
-                        <tr class="text-zinc-700 uppercase italic font-black text-[9px] text-center">
-                            <th class="pb-3 text-left px-2">LAP</th>
-                            <th class="pb-3">S1</th>
-                            <th class="pb-3">S2</th>
-                            <th class="pb-3">S3</th>
-                            <th class="pb-3">S4</th>
-                            <th class="pb-3 text-right px-2">TIME</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabelaVoltas" class="text-center font-mono font-bold"></tbody>
-                </table>
-            </div>
-
-            <div class="col-span-5 h-full relative">
-                <div id="map"></div>
-                <div class="absolute bottom-4 left-4 right-4 bg-black/80 backdrop-blur-md p-3 rounded-2xl border border-white/10 pointer-events-none z-[1000]">
-                    <div class="grid grid-cols-3 gap-1 text-[7px] font-bold uppercase text-center">
-                        <div class="text-red-600">● Bom</div>
-                        <div class="text-yellow-500">● Médio</div>
-                        <div class="text-zinc-500">● Ruim</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
-            authDomain: "mxlaptimer.firebaseapp.com",
-            projectId: "mxlaptimer",
-            storageBucket: "mxlaptimer.firebasestorage.app",
-            messagingSenderId: "790485374192",
-            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const urlParams = new URLSearchParams(window.location.search);
-        const treinoId = urlParams.get('id');
-
-        let map, polyline, dadosTreino, voltasFinal = [];
-        let recordesSessao = [999, 999, 999, 999];
-        let recordesPista = [999, 999, 999, 999];
-
-        async function carregar() {
-            if (!treinoId) return;
-
-            try {
-                const docSnap = await db.collection("treinos").doc(treinoId).get();
-                if (!docSnap.exists) return;
-
-                dadosTreino = docSnap.data();
-                document.getElementById('viewPista').innerText = (dadosTreino.pista || "PISTA").toUpperCase();
-                document.getElementById('viewPiloto').innerText = (dadosTreino.piloto || "PILOTO").toUpperCase();
-
-                // Busca Recordes Globais da Pista
-                const qs = await db.collection("treinos").where("pista", "==", dadosTreino.pista).get();
-                qs.forEach(d => processarS(d.data(), recordesPista));
-
-                // Processa Sessão Atual
-                processarS(dadosTreino, recordesSessao, true);
-
-                renderizarTabela();
-                initMap();
-            } catch (e) {
-                console.error("Erro ao carregar:", e);
-            }
-        }
-
-        function processarS(t, arrAlvo, salvarLocal = false) {
-            const marcas = t.marcasDeVolta || [];
-            const tele = t.telemetria || [];
-            for (let i = 0; i < marcas.length - 1; i++) {
-                const rastro = tele.slice(marcas[i], marcas[i+1]);
-                if (rastro.length < 5) continue;
-                
-                const q = Math.floor(rastro.length / 4);
-                const s = [
-                    (rastro[q].ts - rastro[0].ts)/1000,
-                    (rastro[q*2].ts - rastro[q].ts)/1000,
-                    (rastro[q*3].ts - rastro[q*2].ts)/1000,
-                    (rastro[rastro.length-1].ts - rastro[q*3].ts)/1000
-                ];
-                
-                s.forEach((v, idx) => { if (v < arrAlvo[idx]) arrAlvo[idx] = v; });
-                if (salvarLocal) voltasFinal.push({ s, tempo: t.voltas[i], r: rastro });
-            }
-        }
-
-        window.renderizarTabela = function() {
-            const modo = document.getElementById('baseComparacao').value;
-            const ref = modo === 'pista' ? recordesPista : recordesSessao;
-            const tbody = document.getElementById('tabelaVoltas');
-            tbody.innerHTML = "";
-
-            voltasFinal.forEach((v, i) => {
-                const tr = document.createElement('tr');
-                tr.className = "row-volta bg-zinc-900/40 rounded-xl cursor-pointer hover:bg-zinc-800 transition-all";
-                tr.onclick = () => {
-                    document.querySelectorAll('.row-volta').forEach(r => r.classList.remove('row-selected'));
-                    tr.classList.add('row-selected');
-                    if(polyline) map.removeLayer(polyline);
-                    polyline = L.polyline(v.r.map(p => [p.lat, p.lng]), { color: '#fff', weight: 4 }).addTo(map);
-                    map.fitBounds(polyline.getBounds(), { padding: [30, 30] });
-                };
-
-                let htmlVolta = `<td class="p-3 text-left text-zinc-700 font-black italic">${i+1}</td>`;
-                
-                v.s.forEach((val, idx) => {
-                    let classeCor = "text-zinc-500"; // PADRÃO: CINZA (Ruim)
-                    const diff = val - ref[idx];
-                    
-                    if (diff <=
+                <button onclick="window.history.back()" class="bg-zinc-900 w-10 h-10 flex items-center justify-center rounded-xl text-zinc-40
