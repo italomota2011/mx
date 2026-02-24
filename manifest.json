@@ -1,14 +1,14 @@
 {
-  "short_name": "MX4 Timer",
+  "short_name": "MX Lap Timer",
   "name": "MX4 Lap Timer - Performance",
   "icons": [
-    {
-      "src": "https://raw.githubusercontent.com/italomota2011/mx/refs/heads/main/logo.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
+  {
+    "src": "https://raw.githubusercontent.com/italomota2011/mx/refs/heads/main/logo.png",
+    "sizes": "512x512",
+    "type": "image/png",
+    "purpose": "any" 
+  }
+],
   "start_url": "index.html",
   "background_color": "#000000",
   "theme_color": "#000000",
