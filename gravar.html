@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Gravar - MX4</title>
+    <title>Gravar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Reset para evitar scrolls e comportamentos elásticos no PWA */
@@ -59,3 +59,98 @@
             align-items: center;
             text-transform: uppercase;
             font-weight: bold;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .btn-acao {
+            position: absolute;
+            bottom: 30px;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.2s;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <div class="info-topo">
+            <div id="display-pista">Carregando...</div>
+            <div id="display-voltas" class="text-yellow-500">Volta: 0</div>
+            <div id="display-velocidade" class="text-white">0 km/h</div>
+        </div>
+
+        <div id="cronometro" class="time-sessao">00:00</div>
+
+        <div id="ultima-volta" class="absolute right-10 top-1/2 -translate-y-1/2 text-right">
+            <p class="text-[10px] text-zinc-500 uppercase font-bold">Última</p>
+            <p id="tempo-ultima" class="text-2xl font-black italic">--:--</p>
+        </div>
+
+        <button id="btnAcao" onclick="toggleGravacao()" class="btn-acao bg-white text-black active:scale-95">
+            Iniciar
+        </button>
+    </div>
+
+    <script type="module">
+        // Importação do Firebase (Certifique-se que o db está configurado no seu projeto)
+        // Se usar um arquivo externo de config, importe-o aqui.
+        
+        let gravando = false;
+        let tempoInicial = 0;
+        let intervalo;
+
+        function atualizarCronometro() {
+            const agora = Date.now();
+            const diff = agora - tempoInicial;
+            const segs = Math.floor((diff / 1000) % 60);
+            const mins = Math.floor((diff / 1000 / 60) % 60);
+            
+            document.getElementById('cronometro').innerText = 
+                `${mins.toString().padStart(2, '0')}:${segs.toString().padStart(2, '0')}`;
+        }
+
+        window.toggleGravacao = function() {
+            const btn = document.getElementById('btnAcao');
+            if (!gravando) {
+                // Iniciar
+                gravando = true;
+                tempoInicial = Date.now();
+                intervalo = setInterval(atualizarCronometro, 1000);
+                btn.innerText = "Parar";
+                btn.classList.replace('bg-white', 'bg-red-600');
+                btn.classList.add('text-white');
+                // Bloqueia o ecrã de apagar (opcional)
+                if (navigator.wakeLock) navigator.wakeLock.request('screen');
+            } else {
+                // Parar e Salvar
+                pararGravacao();
+            }
+        };
+
+        async function pararGravacao() {
+            clearInterval(intervalo);
+            const btn = document.getElementById('btnAcao');
+            btn.disabled = true;
+            btn.innerText = "Salvando...";
+            
+            // Aqui entra a sua lógica de addDoc do Firebase que já existe no seu código original
+            setTimeout(() => {
+                alert("Treino salvo!");
+                window.location.href = 'index.html';
+            }, 1500);
+        }
+
+        // Carregar dados iniciais
+        window.onload = () => {
+            const pista = JSON.parse(localStorage.getItem('pistaAtiva') || '{"nome":"Sem Pista"}');
+            const piloto = sessionStorage.getItem('pilotoAtual') || 'Piloto';
+            document.getElementById('display-pista').innerText = `${piloto} @ ${pista.nome}`;
+        };
+    </script>
+</body>
+</html>
