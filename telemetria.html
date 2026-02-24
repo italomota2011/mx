@@ -3,210 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Análise de Performance - MX4</title>
+    <title>Telemetria</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         body { background-color: #000; color: white; font-family: sans-serif; margin: 0; overflow: hidden; height: 100vh; }
-        #map { height: 100%; width: 100%; border-radius: 1.5rem; border: 1px solid #222; }
-        
+        #map { height: 100%; width: 100%; border-radius: 2rem; border: 1px solid #222; }
         @media screen and (orientation: portrait) {
-            #app-container { 
-                transform: rotate(90deg); transform-origin: center; 
-                width: 100dvh; height: 100vw; 
-                position: absolute; top: 50%; left: 50%; translate: -50% -50%; 
-            }
+            #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
         }
-
         .sector-table { border-collapse: separate; border-spacing: 0 4px; }
-        .bg-best-pers { background-color: #16a34a !important; color: white; } /* Verde - Melhor Sessão */
-        .bg-best-abs { background-color: #9333ea !important; color: white; }  /* Roxo - Recorde Pista */
-        .text-bad { color: #ef4444 !important; } /* Vermelho - Pior Setor */
-        
-        .row-selected { outline: 2px solid #eab308; background-color: #111 !important; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        .bg-bom { background-color: #dc2626 !important; color: white !important; } /* Vermelho */
+        .bg-inter { background-color: #eab308 !important; color: black !important; } /* Amarelo */
+        .text-ruim { color: #71717a !important; } /* Cinza */
+        .row-selected { outline: 2px solid #fff; background-color: #111 !important; }
         * { user-select: none; -webkit-tap-highlight-color: transparent; }
     </style>
 </head>
 <body>
     <div id="app-container" class="p-4 h-full flex flex-col gap-3">
-        
-        <div class="flex justify-between items-center bg-zinc-950 p-4 rounded-3xl border border-zinc-900 shadow-xl">
+        <div class="flex justify-between items-center bg-zinc-950 p-4 rounded-[2rem] border border-zinc-900 shadow-xl">
             <div class="flex items-center gap-4">
-                <button onclick="window.history.back()" class="bg-zinc-900 w-10 h-10 flex items-center justify-center rounded-xl text-zinc-400 active:scale-90 transition-all text-xl">←</button>
+                <button onclick="window.history.back()" class="bg-zinc-900 w-10 h-10 flex items-center justify-center rounded-xl text-zinc-400 text-xl font-bold">←</button>
                 <div>
-                    <h1 id="viewPista" class="text-yellow-500 font-black italic uppercase text-lg leading-none tracking-tighter">---</h1>
-                    <p id="viewPiloto" class="text-zinc-600 text-[9px] font-bold uppercase mt-1 tracking-widest">---</p>
+                    <h1 id="viewPista" class="text-white font-black italic uppercase text-lg leading-none">---</h1>
+                    <p id="viewPiloto" class="text-zinc-600 text-[9px] font-bold uppercase mt-1">---</p>
                 </div>
             </div>
-            <div class="flex items-center gap-4">
-                <div class="flex flex-col items-end border-r border-zinc-800 pr-4">
-                    <span class="text-[8px] text-zinc-600 font-black uppercase">Recorde Pista</span>
-                    <span id="pistaRecord" class="text-xs font-black italic text-purple-500">--:--.---</span>
-                </div>
-                <button onclick="toggleFullscreen()" class="bg-zinc-900 text-[10px] font-black px-4 py-2.5 rounded-xl border border-zinc-800 uppercase text-yellow-500 active:bg-yellow-500 active:text-black">⛶ Fullscreen</button>
+            <div class="flex items-center gap-3">
+                <select id="baseComparacao" onchange="renderizarTabela()" class="bg-zinc-900 text-[10px] font-bold px-3 py-2 rounded-xl border border-zinc-800 text-white outline-none">
+                    <option value="sessao">Comparar: Melhor Sessão</option>
+                    <option value="pista">Comparar: Recorde Pista</option>
+                </select>
+                <button onclick="toggleFullscreen()" class="bg-zinc-800 text-[10px] font-black px-4 py-2 rounded-xl text-yellow-500 uppercase">⛶</button>
             </div>
         </div>
 
         <div class="flex-1 grid grid-cols-12 gap-3 overflow-hidden">
-            <div class="col-span-7 bg-zinc-950 p-4 rounded-3xl border border-zinc-900 overflow-y-auto shadow-inner">
-                <table class="w-full sector-table text-[10px]">
+            <div class="col-span-7 bg-zinc-950 p-4 rounded-[2.5rem] border border-zinc-900 overflow-y-auto">
+                <table class="w-full sector-table text-[11px]">
                     <thead>
                         <tr class="text-zinc-700 uppercase italic font-black text-[8px] text-center">
-                            <th class="pb-2 text-left px-2">LAP</th>
-                            <th class="pb-2">S1</th>
-                            <th class="pb-2">S2</th>
-                            <th class="pb-2">S3</th>
-                            <th class="pb-2">S4</th>
-                            <th class="pb-2 text-right px-2">TIME</th>
+                            <th class="pb-3 text-left">LAP</th>
+                            <th>S1</th><th>S2</th><th>S3</th><th>S4</th>
+                            <th class="pb-3 text-right">TIME</th>
                         </tr>
                     </thead>
-                    <tbody id="tabelaVoltas" class="text-center font-mono text-zinc-400"></tbody>
+                    <tbody id="tabelaVoltas" class="text-center font-mono font-bold"></tbody>
                 </table>
             </div>
-
-            <div class="col-span-5 flex flex-col h-full relative">
+            <div class="col-span-5 h-full relative">
                 <div id="map"></div>
-                <div class="absolute bottom-4 left-4 right-4 bg-black/80 backdrop-blur-md p-3 rounded-2xl border border-white/10 pointer-events-none">
-                    <div id="infoVoltaSelect" class="text-[9px] font-black italic text-zinc-400 uppercase">Selecione uma volta</div>
-                    <div class="flex gap-2 mt-1">
-                        <span class="w-2 h-2 rounded-full bg-green-500"></span> <span class="text-[7px] text-zinc-500 uppercase font-bold">Melhor Sessão</span>
-                        <span class="w-2 h-2 rounded-full bg-purple-500 ml-2"></span> <span class="text-[7px] text-zinc-500 uppercase font-bold">Recorde Pista</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
-            authDomain: "mxlaptimer.firebaseapp.com",
-            projectId: "mxlaptimer",
-            storageBucket: "mxlaptimer.firebasestorage.app",
-            messagingSenderId: "790485374192",
-            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const urlParams = new URLSearchParams(window.location.search);
-        const treinoId = urlParams.get('id');
-
-        let map, polyline, dadosTreino;
-        let melhoresSessao = [999, 999, 999, 999];
-        let recordesAbsolutos = [999, 999, 999, 999];
-
-        window.toggleFullscreen = async () => {
-            try {
-                if (!document.fullscreenElement) {
-                    await document.documentElement.requestFullscreen();
-                    if (screen.orientation && screen.orientation.lock) {
-                        await screen.orientation.lock('landscape');
-                    }
-                } else {
-                    document.exitFullscreen();
-                }
-            } catch (e) { console.warn("Modo paisagem requer HTTPS."); }
-        };
-
-        async function carregar() {
-            const docRef = doc(db, "treinos", treinoId);
-            const docSnap = await getDoc(docRef);
-            if (!docSnap.exists()) return;
-            dadosTreino = docSnap.data();
-            
-            document.getElementById('viewPista').innerText = dadosTreino.pista;
-            document.getElementById('viewPiloto').innerText = dadosTreino.piloto;
-
-            const q = query(collection(db, "treinos"), where("pista", "==", dadosTreino.pista));
-            const querySnapshot = await getDocs(q);
-            
-            let melhorLapPista = "99:99.999";
-            querySnapshot.forEach((doc) => {
-                const t = doc.data();
-                if (t.voltas) {
-                    const best = [...t.voltas].sort()[0];
-                    if (best < melhorLapPista) melhorLapPista = best;
-                    processarRecordesAbsolutos(t);
-                }
-            });
-
-            document.getElementById('pistaRecord').innerText = melhorLapPista;
-            processarTabela();
-            initMap();
-        }
-
-        function processarRecordesAbsolutos(treinoData) {
-            const marcas = treinoData.marcasDeVolta || [];
-            const tele = treinoData.telemetria || [];
-            for (let i = 0; i < marcas.length - 1; i++) {
-                const rastro = tele.slice(marcas[i], marcas[i+1]);
-                if (rastro.length < 5) continue;
-                const q = Math.floor(rastro.length / 4);
-                const s = [(rastro[q].ts - rastro[0].ts)/1000, (rastro[q*2].ts - rastro[q].ts)/1000, (rastro[q*3].ts - rastro[q*2].ts)/1000, (rastro[rastro.length-1].ts - rastro[q*3].ts)/1000];
-                s.forEach((val, idx) => { if (val < recordesAbsolutos[idx]) recordesAbsolutos[idx] = val; });
-            }
-        }
-
-        function processarTabela() {
-            const marcas = dadosTreino.marcasDeVolta || [];
-            const tele = dadosTreino.telemetria || [];
-            const voltas = [];
-
-            // Identifica melhores da sessão
-            for (let i = 0; i < marcas.length - 1; i++) {
-                const rastro = tele.slice(marcas[i], marcas[i+1]);
-                if (rastro.length < 5) continue;
-                const q = Math.floor(rastro.length / 4);
-                const s = [(rastro[q].ts - rastro[0].ts)/1000, (rastro[q*2].ts - rastro[q].ts)/1000, (rastro[q*3].ts - rastro[q*2].ts)/1000, (rastro[rastro.length-1].ts - rastro[q*3].ts)/1000];
-                s.forEach((val, idx) => { if (val < melhoresSessao[idx]) melhoresSessao[idx] = val; });
-                voltas.push({ s, tempo: dadosTreino.voltas[i], rastro });
-            }
-
-            const tbody = document.getElementById('tabelaVoltas');
-            voltas.forEach((v, i) => {
-                const tr = document.createElement('tr');
-                tr.className = "row-volta bg-zinc-900/40 rounded-xl cursor-pointer";
-                tr.onclick = () => {
-                    document.querySelectorAll('.row-volta').forEach(r => r.classList.remove('row-selected'));
-                    tr.classList.add('row-selected');
-                    plotar(v.rastro, i+1);
-                };
-
-                tr.innerHTML = `
-                    <td class="p-3 font-black italic text-zinc-700 text-left rounded-l-xl">${i+1}</td>
-                    ${v.s.map((val, idx) => {
-                        let classe = "text-bad"; // Padrao: Vermelho (Pior)
-                        if (val <= recordesAbsolutos[idx]) classe = "bg-best-abs rounded-md"; // Roxo
-                        else if (val <= melhoresSessao[idx]) classe = "bg-best-pers rounded-md"; // Verde
-                        return `<td class="p-3 font-bold ${classe}">${val.toFixed(3)}</td>`;
-                    }).join('')}
-                    <td class="p-3 text-right font-black italic text-white rounded-r-xl">${v.tempo}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function initMap() {
-            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([0,0], 13);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-            if (dadosTreino.telemetria.length) map.setView([dadosTreino.telemetria[0].lat, dadosTreino.telemetria[0].lng], 17);
-        }
-
-        function plotar(rastro, num) {
-            if (polyline) map.removeLayer(polyline);
-            polyline = L.polyline(rastro.map(p => [p.lat, p.lng]), { color: '#eab308', weight: 5 }).addTo(map);
-            map.fitBounds(polyline.getBounds(), { padding: [30, 30] });
-            document.getElementById('infoVoltaSelect').innerText = `Volta ${num}`;
-        }
-
-        carregar();
-    </script>
-</body>
-</html>
+                <div class="absolute bottom-4 left-4 right-4 bg-black/8
