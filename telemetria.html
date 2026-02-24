@@ -3,40 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telemetria MX4</title>
+    <title>MX4 Telemetria</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    <style>
-        body { background-color: #000; color: white; font-family: sans-serif; margin: 0; overflow: hidden; height: 100vh; }
-        #map { height: 100%; width: 100%; border-radius: 2rem; border: 1px solid #222; background: #050505; }
-        
-        @media screen and (orientation: portrait) {
-            #app-container { 
-                transform: rotate(90deg); transform-origin: center; 
-                width: 100dvh; height: 100vw; 
-                position: absolute; top: 50%; left: 50%; translate: -50% -50%; 
+        const firebaseConfig = {
+            apiKey: "AIzaSyCk66sWdmBuL9BDrJiamg1J2rw7QH6uYvU",
+            authDomain: "mxlaptimer.firebaseapp.com",
+            projectId: "mxlaptimer",
+            storageBucket: "mxlaptimer.firebasestorage.app",
+            messagingSenderId: "790485374192",
+            appId: "1:790485374192:web:6e18d1863f4702b6be9e35"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Variáveis de Estado
+        let map, polyline, dadosTreino;
+        let voltasFinal = [];
+        let recordesSessao = [999, 999, 999, 999];
+        let recordesPista = [999, 999, 999, 999];
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const treinoId = urlParams.get('id');
+
+        async function iniciar() {
+            if (!treinoId) {
+                alert("ID do treino não encontrado na URL.");
+                return;
+            }
+
+            try {
+                const docRef = doc(db, "treinos", treinoId);
+                const docSnap = await getDoc(docRef);
+
+                if (!docSnap.exists()) {
+                    document.getElementById('viewPista').innerText = "NÃO ENCONTRADO";
+                    return;
+                }
+
+                dadosTreino = docSnap.data();
+                document.getElementById('viewPista').innerText = (dadosTreino.pista || "PISTA").toUpperCase();
+                document.getElementById('viewPiloto').innerText = (dadosTreino.piloto || "PILOTO").toUpperCase();
+
+                // 1. Buscar Recordes da Pista
+                const q = query(collection(db, "treinos"), where("pista", "==", dadosTreino.pista));
+                const querySnapshot = await getDocs(q);
+                querySnapshot.forEach(d => processarDados(d.data(), recordesPista));
+
+                // 2. Processar Sessão Atual
+                processarDados(dadosTreino, recordesSessao, true);
+
+                renderizarTabela();
+                initMap();
+            } catch (error) {
+                console.error(error);
+                document.body.innerHTML += `<div style="color:red; position:fixed; top:0; background:white; z-index:9999">Erro: ${error.message}</div>`;
             }
         }
 
-        .sector-table { border-collapse: separate; border-spacing: 0 4px; }
-        
-        /* Cores de Performance */
-        .status-bom { background-color: #dc2626 !important; color: white !important; border-radius: 0.5rem; } /* Vermelho */
-        .status-medio { background-color: #eab308 !important; color: black !important; border-radius: 0.5rem; } /* Amarelo */
-        .status-ruim { color: #71717a !important; } /* Cinza */
-        
-        .row-selected { outline: 2px solid #fff; background-color: #111 !important; }
-        * { user-select: none; -webkit-tap-highlight-color: transparent; }
-    </style>
-</head>
-<body>
-    <div id="app-container" class="p-4 h-full flex flex-col gap-3">
-        
-        <div class="flex justify-between items-center bg-zinc-950 p-4 rounded-[2rem] border border-zinc-900 shadow-xl">
-            <div class="flex items-center gap-4">
-                <button onclick="window.history.back()" class="bg-zinc-900 w-10 h-10 flex items-center justify-center rounded-xl text-zinc-40
+        function processar
