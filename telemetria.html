@@ -3,74 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Análise de Performance</title>
+    <title>Análise de Performance - MX4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         body { background-color: #000; color: white; font-family: sans-serif; margin: 0; overflow: hidden; height: 100vh; }
         #map { height: 100%; width: 100%; border-radius: 1.5rem; border: 1px solid #222; }
-        
         @media screen and (orientation: portrait) {
-            #app-container { 
-                transform: rotate(90deg); transform-origin: center; 
-                width: 100dvh; height: 100vw; 
-                position: absolute; top: 50%; left: 50%; translate: -50% -50%; 
-            }
+            #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
         }
-
         .sector-table { border-collapse: separate; border-spacing: 0 4px; }
-        
-        /* CORES SOLICITADAS */
-        .setor-bom { background-color: #dc2626 !important; color: white !important; } /* Vermelho */
-        .setor-medio { background-color: #eab308 !important; color: black !important; } /* Amarelo */
-        .setor-ruim { color: #71717a !important; } /* Cinza */
-        
+        /* Cores solicitadas */
+        .bg-bom { background-color: #dc2626 !important; color: white; border-radius: 4px; } /* Vermelho */
+        .bg-medio { background-color: #eab308 !important; color: black; border-radius: 4px; } /* Amarelo */
+        .text-ruim { color: #71717a !important; } /* Cinza */
         .row-selected { outline: 2px solid #eab308; background-color: #111 !important; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
         * { user-select: none; -webkit-tap-highlight-color: transparent; }
     </style>
 </head>
 <body>
     <div id="app-container" class="p-4 h-full flex flex-col gap-3">
-        
         <div class="flex justify-between items-center bg-zinc-950 p-4 rounded-3xl border border-zinc-900 shadow-xl">
             <div class="flex items-center gap-4">
-                <button onclick="window.history.back()" class="bg-zinc-900 w-10 h-10 flex items-center justify-center rounded-xl text-zinc-400 active:scale-90 transition-all text-xl">←</button>
+                <button onclick="window.history.back()" class="bg-zinc-900 w-10 h-10 flex items-center justify-center rounded-xl text-zinc-400 text-xl">←</button>
                 <div>
-                    <h1 id="viewPista" class="text-white font-black italic uppercase text-lg leading-none tracking-tighter">CARREGANDO...</h1>
-                    <p id="viewPiloto" class="text-zinc-600 text-[9px] font-bold uppercase mt-1 tracking-widest">AGUARDE</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-4">
-                <select id="baseComparacao" onchange="window.processarTabela()" class="bg-zinc-900 text-[10px] font-black px-3 py-2.5 rounded-xl border border-zinc-800 text-white outline-none">
-                    <option value="sessao">Comparar: Melhor Sessão</option>
-                    <option value="pista">Comparar: Recorde Pista</option>
-                </select>
-                <button onclick="window.toggleFullscreen()" class="bg-zinc-900 text-[10px] font-black px-4 py-2.5 rounded-xl border border-zinc-800 uppercase text-yellow-500">⛶</button>
-            </div>
-        </div>
-
-        <div class="flex-1 grid grid-cols-12 gap-3 overflow-hidden">
-            <div class="col-span-7 bg-zinc-950 p-4 rounded-3xl border border-zinc-900 overflow-y-auto shadow-inner">
-                <table class="w-full sector-table text-[10px]">
-                    <thead>
-                        <tr class="text-zinc-700 uppercase italic font-black text-[8px] text-center">
-                            <th class="pb-2 text-left px-2">LAP</th>
-                            <th class="pb-2">S1</th>
-                            <th class="pb-2">S2</th>
-                            <th class="pb-2">S3</th>
-                            <th class="pb-2">S4</th>
-                            <th class="pb-2 text-right px-2">TIME</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabelaVoltas" class="text-center font-mono font-bold"></tbody>
-                </table>
-            </div>
-
-            <div class="col-span-5 flex flex-col h-full relative">
-                <div id="map"></div>
-                <div class="absolute bottom-4 left-4 right-4 bg-black/80 backdrop-blur-md p-3 rounded-2xl border border-white/10 pointer-events-none">
-                    <div id="infoVoltaSelect" class="text-[9px] font-black italic text-zinc-400 uppercase">Selecione uma volta</div>
-                    <div class="flex gap-2 mt-1">
+                    <h1 id="viewPista" class="text-white font-black italic uppercase text-lg leading-none">---</h1>
+                    <p id="viewPiloto" class="
