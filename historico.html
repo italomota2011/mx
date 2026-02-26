@@ -3,18 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ranking</title>
+    <title>Ranking MX4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #000; color: white; min-height: 100dvh; margin: 0; font-family: sans-serif; }
-        @media screen and (orientation: portrait) {
-            #app-container { transform: rotate(90deg); transform-origin: center; width: 100dvh; height: 100vw; position: absolute; top: 50%; left: 50%; translate: -50% -50%; }
+        /* Alterado para permitir rolagem e garantir fundo preto em toda a extensão */
+        body { 
+            background-color: #000; 
+            color: white; 
+            min-height: 100vh; 
+            margin: 0; 
+            font-family: sans-serif;
+            overflow-y: auto; /* Garante a rolagem vertical */
         }
-        .card-pista { background: linear-gradient(180deg, #111 0%, #000 100%); border: 1px solid #222; }
+        
+        @media screen and (orientation: portrait) {
+            #app-container { 
+                transform: rotate(90deg); 
+                transform-origin: center; 
+                width: 100dvh; 
+                height: 100vw; 
+                position: absolute; 
+                top: 50%; 
+                left: 50%; 
+                translate: -50% -50%; 
+            }
+        }
+        
+        .card-pista { 
+            background: linear-gradient(180deg, #111 0%, #000 100%); 
+            border: 1px solid #222; 
+        }
+
+        /* Esconde a barra de rolagem mas mantém a funcionalidade (opcional) */
+        ::-webkit-scrollbar {
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <div id="app-container" class="p-6">
+    <div id="app-container" class="p-6 min-h-screen">
         <div class="flex justify-between items-center mb-6">
             <a href="index.html" class="text-zinc-500 font-bold uppercase text-[10px] border border-zinc-900 px-4 py-2 rounded-xl">← Menu</a>
             <select id="filtroPista" onchange="renderizar()" class="bg-zinc-900 text-white font-bold text-[10px] py-2 px-4 rounded-xl border border-zinc-800 outline-none uppercase">
@@ -22,7 +49,7 @@
             </select>
         </div>
 
-        <div id="listaTreinos" class="space-y-6 max-w-3xl mx-auto pb-20">
+        <div id="listaTreinos" class="space-y-6 max-w-3xl mx-auto pb-32">
             <div id="msgStatus" class="text-center text-zinc-500 font-bold uppercase italic text-[10px] mt-20">
                 Sincronizando...
             </div>
@@ -59,15 +86,11 @@
             snapshot.forEach(doc => {
                 const t = doc.data();
                 
-                // Processa se tiver pista e voltas
                 if (t.pista && t.voltas && Array.isArray(t.voltas) && t.voltas.length > 0) {
                     const nomePista = t.pista.toUpperCase();
                     pistasSet.add(nomePista);
 
-                    // Pega a melhor volta
                     const melhorVolta = [...t.voltas].sort()[0] || "99:99.99";
-                    
-                    // Pega o tempo total gravado na sessão
                     const tempoTotalSessao = t.totalSessao || "---";
 
                     let dataF = "---";
@@ -145,4 +168,3 @@
     </script>
 </body>
 </html>
-
